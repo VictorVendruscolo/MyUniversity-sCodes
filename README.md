@@ -4,46 +4,37 @@ Repository containing the code for activities and assignments developed by stude
 
 ## Repository Structure
 
-- Algorithms_And_Data_Structures_II/ - Exercises on Algorithms and Data Structures II (AVL trees, BST, linked lists, sorting).
-
-- - Numerical_Calculus/ - Numerical Calculus methods (Gauss Method, function roots).
- 
-  - - Computer_Graphics/ - Computer Graphics activities in C++ (LookAt camera, transformations, practical chapters).
-   
-    - - Formal_Languages_And_Automata/ - Formal Languages and Automata: NFA to DFA converter and Turing Machine simulator.
-     
-      - - Assembly_Language/ - MIPS Assembly exercises (branches, loops, allocation, data types).
-       
-        - - R_Language/ - Activities and classes for the R Language course.
-         
-          - - Programming_Paradigms/ - Programming Paradigms exercises (templates, pointers, classes, operator overloading, Prolog).
-           
-            - - IFMS_Project/ - JavaScript/Node.js project with Jest tests.
-             
-              - - Computer_Networks/ - Computer Networks activities.
-               
-                - - Operating_Systems/ - Threads, processes, CPU scheduler, producer-consumer, shell.
+ - Algoritmos_Estrutura_de_Dados_II/ - Exercises on Algorithms and Data Structures II (AVL trees, BST, linked lists, sorting).
+ - Calculo_Numerico/ - Numerical Calculus methods (Gauss Method, function roots). 
+ - Computacao_Grafica/ - Computer Graphics activities in C++ (LookAt camera, transformations, practical chapters).   
+ - Linguagem_Formal_Automatos/ - Formal Languages and Automata: NFA to DFA converter and Turing Machine simulator.     
+ - Linguagem_de_Montagem/ - MIPS Assembly exercises (branches, loops, allocation, data types).       
+ - Linguagem_R/ - Activities and classes for the R Language course.         
+ - Paradigma_de_Programacao/ - Programming Paradigms exercises (templates, pointers, classes, operator overloading, Prolog).    
+ - Projeto_IFMS/ - JavaScript/Node.js project with Jest tests.             
+ - Redes_de_Computadores/ - Computer Networks activities.               
+ - Sistemas_Operacionais/ - Operating Systems: Threads, processes, CPU scheduler, producer-consumer, shell.
                  
-                  - ## Technologies Used
+ ## Technologies Used
                  
-                  - - C++
+- C++
                    
-                    - - C
+- C
                      
-                      - - R
+- R
                        
-                        - - Assembly (MIPS)
+- Assembly (MIPS)
                          
-                          - - Shell Script
+- Shell Script
                            
-                            - - JavaScript / Node.js
+- JavaScript / Node.js
                              
-                              - - HTML
+- HTML
                                
-                                - ## Purpose
+## Purpose
                                
-                                - To centralize and organize the code produced throughout the courses taken during the Computer Science program at Universidade Estadual do Mato Grosso do Sul (UEMS), serving as a repository for study and reference.
+- To centralize and organize the code produced throughout the courses taken during the Computer Science program at Universidade Estadual do Mato Grosso do Sul (UEMS), serving as a repository for study and reference.
                                
-                                - ## Author
+## Author
                                
-                                - Victor Rech Vendruscolo
+- Victor Rech Vendruscolo
