@@ -21,8 +21,9 @@
 //   * Nova primitiva CONE, com um icone proprio na barra de selecao a esquerda.
 //   * O cone e desenhado com glutWireCone(base, altura, slices, stacks) - a mesma
 //     funcao usada na aula em Cap4/Objects.cpp.
-//   * Colocacao interativa: 1o clique fixa a base; movendo o mouse o cone cresce
-//     (pre-visualizacao em tempo real); 2o clique salva o cone.
+//   * Colocacao interativa: 1o clique fixa o VERTICE (apice); movendo o mouse o cone
+//     e moldado a partir do vertice - a distancia 1o ponto -> mouse define o TAMANHO
+//     (altura/raio), com pre-visualizacao em tempo real; 2o clique salva.
 //   * Transformacoes geometricas aplicadas ao ULTIMO cone desenhado (o "cone ativo"),
 //     usando glTranslatef / glRotatef / glScalef, exatamente como em Cap4/Objects.cpp:
 //        - Rotacao:    x/X (eixo X), y/Y (eixo Y), z/Z (eixo Z)
@@ -215,10 +216,13 @@ void drawRectangles(void)
 ////////////////////////////////////////////////////////////////////////////////////
 // Cone class (ACRESCENTADA - exercicio 12).
 //
-// Cada cone guarda a posicao da sua base no canvas (x, y), o raio da base (definido
-// pelo arrasto do mouse) e o seu estado de transformacoes geometricas proprias:
-// tres angulos de rotacao (angleX, angleY, angleZ), um fator de escala (scale) e
-// deslocamentos de translacao ja acumulados na posicao (x, y).
+// Assim como as classes Line e Rectangle, o cone e definido por DOIS pontos:
+//   (x1, y1) = VERTICE (apice) do cone -> onde o usuario deu o 1o clique;
+//   (x2, y2) = posicao do mouse -> a DISTANCIA ate o vertice define o TAMANHO do cone
+//              (altura/raio), calculada com sqrt, do mesmo jeito que Cap3/MouseMotion.cpp
+//              calcula o raio do circulo. O cone e moldado em tempo real conforme o mouse.
+// Alem disso guarda o estado de transformacoes geometricas proprias do teclado:
+// tres angulos de rotacao (angleX, angleY, angleZ) e um fator de escala (scale).
 //
 // O desenho segue a mesma ideia de Cap4/Objects.cpp: empilha a matriz, aplica as
 // transformacoes (glTranslatef/glRotatef/glScalef) e chama glutWireCone.
@@ -226,9 +230,9 @@ void drawRectangles(void)
 class Cone
 {
 public:
-   Cone(int xVal, int yVal, float radiusVal)
+   Cone(int x1Val, int y1Val, int x2Val, int y2Val)
    {
-	  x = xVal; y = yVal; radius = radiusVal;
+	  x1 = x1Val; y1 = y1Val; x2 = x2Val; y2 = y2Val;
 	  angleX = 0.0; angleY = 0.0; angleZ = 0.0; // Sem rotacao inicial do usuario.
 	  scale = 1.0;                              // Escala neutra inicial.
    }
@@ -239,10 +243,9 @@ public:
    void rotateY(float a) { angleY += a; }
    void rotateZ(float a) { angleZ += a; }
    void changeScale(float factor) { scale *= factor; }
-   void translate(int dx, int dy) { x += dx; y += dy; }
+   void translate(int dx, int dy) { x1 += dx; y1 += dy; x2 += dx; y2 += dy; }
 private:
-   int x, y;                        // Centro da base do cone no canvas (pixels).
-   float radius;                    // Raio da base (vem da distancia arrastada).
+   int x1, y1, x2, y2;              // (x1,y1)=vertice/apice; (x2,y2)=ponto do mouse.
    float angleX, angleY, angleZ;    // Angulos de rotacao (transformacao geometrica).
    float scale;                     // Fator de escala uniforme (transformacao geometrica).
 };
@@ -250,24 +253,38 @@ private:
 // Function to draw a cone.
 void Cone::drawCone()
 {
+   // O TAMANHO vem da distancia do vertice (x1,y1) ate o ponto do mouse (x2,y2),
+   // do mesmo modo que Cap3/MouseMotion.cpp calcula o raio do circulo com sqrt.
+   float dx = (float)(x2 - x1);
+   float dy = (float)(y2 - y1);
+   float height = sqrt(dx * dx + dy * dy);   // Altura = distancia vertice -> mouse.
+   float radius = 0.40 * height;             // Raio proporcional (mantem a forma de cone).
+
    glPushMatrix();                       // Salva a matriz para nao afetar o resto da cena.
 
-   // 1) Leva o cone ate o ponto clicado no canvas.
-   glTranslatef(x, y, 0.0);
+   // 1) Leva o VERTICE (apice) do cone ate o ponto clicado no canvas.
+   glTranslatef(x1, y1, 0.0);
 
-   // 2) Transformacoes geometricas escolhidas pelo usuario (rotacao e escala).
+   // 2) Transformacoes geometricas escolhidas pelo usuario (rotacao em torno do
+   //    vertice + escala).
    glRotatef(angleZ, 0.0, 0.0, 1.0);
    glRotatef(angleY, 0.0, 1.0, 0.0);
    glRotatef(angleX, 1.0, 0.0, 0.0);
    glScalef(scale, scale, scale);
 
-   // 3) Inclinacao fixa para o cone 3D ficar "legivel" na tela ortografica 2D:
-   //    assim a base circular vira uma elipse e as laterais formam o triangulo.
+   // 3) Inclinacao fixa para o cone 3D ficar "legivel" na tela ortografica 2D: a base
+   //    circular vira uma elipse e as laterais formam o triangulo. O sinal negativo faz
+   //    a base ficar ABAIXO do vertice, ou seja, o cone cai para baixo a partir da ponta.
    glRotatef(-70.0, 1.0, 0.0, 0.0);
 
-   // 4) Desenha o cone em modo aramado (glutWireCone: raio da base, altura, fatias, aneis).
-   //    A altura e proporcional ao raio para manter a forma de cone ao redimensionar.
-   glutWireCone(radius, 2.0 * radius, 20, 12);
+   // 4) glutWireCone desenha a base em z = 0 e o APICE em z = altura. Para o VERTICE
+   //    ficar exatamente no ponto clicado, recuamos o cone de "altura" ao longo do
+   //    eixo: assim o apice vai para a origem local (o clique) e a base cresce a
+   //    partir do vertice, para baixo.
+   glTranslatef(0.0, 0.0, -height);
+
+   // 5) Desenha o cone em modo aramado (glutWireCone: raio da base, altura, fatias, aneis).
+   glutWireCone(radius, height, 20, 12);
 
    glPopMatrix();                        // Restaura a matriz.
 }
@@ -417,10 +434,8 @@ void drawPreview(void)
    }
    else if (primitive == CONE)
    {
-      // Raio = distancia do 1o ponto ate o mouse. Cria um cone temporario e o desenha.
-      float radius = sqrt((float)(curX - tempX) * (curX - tempX) +
-                          (float)(curY - tempY) * (curY - tempY));
-      Cone temp(tempX, tempY, radius);
+      // Cone temporario: vertice no 1o clique, moldado ate a posicao atual do mouse.
+      Cone temp(tempX, tempY, curX, curY);
       temp.drawCone();
    }
 
@@ -461,12 +476,7 @@ void drawScene(void)
    glClear(GL_COLOR_BUFFER_BIT);
    glColor3f(0.0, 0.0, 0.0);
 
-   drawPointSelectionBox();
-   drawLineSelectionBox();
-   drawRectangleSelectionBox();
-   drawConeSelectionBox();   // 4a caixa: primitiva cone.
-   drawInactiveArea();
-
+   // 1) Primeiro as primitivas desenhadas pelo usuario e a grade.
    drawPoints();
    drawLines();
    drawRectangles();
@@ -477,6 +487,15 @@ void drawScene(void)
 	   (pointCount == 1) ) drawPreview();
 
    if (isGrid) drawGrid();
+
+   // 2) A barra de selecao e desenhada POR ULTIMO: como suas caixas sao retangulos
+   //    preenchidos (glRectf), elas cobrem qualquer parte do cone que tenha invadido
+   //    a area da aba. Assim o cone gerado nunca ultrapassa o limite da aba de selecao.
+   drawPointSelectionBox();
+   drawLineSelectionBox();
+   drawRectangleSelectionBox();
+   drawConeSelectionBox();   // 4a caixa: primitiva cone.
+   drawInactiveArea();
 
    glutSwapBuffers();
 }
@@ -544,16 +563,14 @@ void mouseControl(int button, int state, int x, int y)
 		 {
 	        if (pointCount == 0)
 			{
-               tempX = x; tempY = y;    // 1o clique: centro da base.
+               tempX = x; tempY = y;    // 1o clique: vertice (apice) do cone.
                curX = x; curY = y;
 		       pointCount++;
 			}
 	        else
 			{
-               // 2o clique: raio = distancia entre os dois pontos; salva o cone.
-               float radius = sqrt((float)(x - tempX) * (x - tempX) +
-                                   (float)(y - tempY) * (y - tempY));
-               cones.push_back( Cone(tempX, tempY, radius) );
+               // 2o clique: (x2,y2) = ponto do mouse; salva o cone (vertice + direcao).
+               cones.push_back( Cone(tempX, tempY, x, y) );
 		       pointCount = 0;
 			}
 		 }

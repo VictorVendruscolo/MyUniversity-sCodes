@@ -41,8 +41,10 @@ Tudo foi feito **reaproveitando apenas técnicas que já aparecem nos códigos d
    - **Ponto:** um clique.
    - **Linha / Retângulo / Cone:** dois cliques. **Entre os dois cliques**, mova o mouse
      e veja a primitiva em **vermelho** mudando em tempo real (Item I). O 2º clique salva.
-   - Para o cone: o 1º clique fixa o **centro da base**; ao mover o mouse o cone **cresce**
-     (o raio é a distância até o mouse); o 2º clique salva o cone (em preto).
+   - Para o cone: o 1º clique fixa o **vértice (ápice)**; ao mover o mouse o cone é
+     **moldado a partir do vértice** — a **distância** *1º ponto → mouse* define o
+     **tamanho** (altura/raio), com pré-visualização em tempo real. O 2º clique salva
+     (em preto).
 3. **Transformações geométricas do cone** (agem sobre o **último cone desenhado**):
    - `x` / `X` — rotaciona no eixo X (+/−)
    - `y` / `Y` — rotaciona no eixo Y (+/−)
@@ -60,8 +62,10 @@ Tudo foi feito **reaproveitando apenas técnicas que já aparecem nos códigos d
 Seguindo o mesmo molde das outras primitivas do `canvas.cpp`:
 
 - `#define CONE 4` e `NUMBERPRIMITIVES 4` (antes eram 3 primitivas).
-- Uma **classe `Cone`** que guarda: posição da base `(x, y)`, `radius` (raio da base), e o
-  estado das transformações do próprio cone: `angleX, angleY, angleZ` (rotações) e `scale`.
+- Uma **classe `Cone`** que — igual a `Line`/`Rectangle` — guarda **dois pontos**:
+  `(x1, y1)` = vértice/ápice e `(x2, y2)` = ponto do mouse; e o estado das transformações do
+  próprio cone: `angleX, angleY, angleZ` (rotações) e `scale`. Altura e raio são calculados
+  da **distância** entre os dois pontos (com `sqrt`, como no `MouseMotion.cpp`).
 - Um `vector<Cone> cones` e a função `drawCones()` que percorre o vetor (igual a
   `drawPoints`, `drawLines`, `drawRectangles`).
 - `drawConeSelectionBox()` desenha a 4ª caixa e o **ícone do cone** (duas laterais até o
@@ -72,16 +76,28 @@ Seguindo o mesmo molde das outras primitivas do `canvas.cpp`:
 O desenho do cone (`Cone::drawCone`) usa a sequência clássica de `Cap4/Objects.cpp`:
 
 ```
+// A partir dos dois pontos:
+dx = x2 - x1;  dy = y2 - y1;
+height = sqrt(dx*dx + dy*dy);        // tamanho = distância vértice -> mouse (como MouseMotion.cpp)
+radius = 0.40 * height;              // raio proporcional (mantém forma de cone)
+
 glPushMatrix();
-  glTranslatef(x, y, 0);              // leva o cone ao ponto clicado
-  glRotatef(angleZ, 0,0,1);           // transformações do usuário (rotação...)
+  glTranslatef(x1, y1, 0);           // leva o VÉRTICE (ápice) ao ponto clicado
+  glRotatef(angleZ, 0,0,1);          // transformações do usuário (rotação...)
   glRotatef(angleY, 0,1,0);
   glRotatef(angleX, 1,0,0);
-  glScalef(scale, scale, scale);      // ...e escala
-  glRotatef(-70, 1,0,0);              // inclinação fixa p/ ficar "3D" na tela 2D
-  glutWireCone(radius, 2*radius, 20, 12);
+  glScalef(scale, scale, scale);     // ...e escala
+  glRotatef(-70, 1,0,0);             // inclinação fixa p/ ficar "3D" (base ABAIXO do vértice)
+  glTranslatef(0, 0, -height);       // recua p/ o ápice ficar na origem (no clique)
+  glutWireCone(radius, height, 20, 12);
 glPopMatrix();
 ```
+
+> **Ancoragem no vértice:** o `glutWireCone` desenha a base em `z = 0` e o ápice em
+> `z = altura`. O `glTranslatef(0, 0, -height)` recua o cone ao longo do eixo, levando o
+> **ápice para a origem local** — ou seja, para o exato ponto clicado. Assim o cone
+> **nasce do vértice** e é moldado (tamanho) em tempo real conforme o mouse. Só se usa
+> `sqrt`/`cos`/`sin` e chamadas OpenGL/GLUT que já aparecem nos códigos da aula.
 
 ### 3.2 Cone 3D dentro de um canvas 2D
 O `canvas.cpp` usa **projeção ortográfica** (`glOrtho`), sem iluminação e sem
@@ -144,4 +160,7 @@ Ou usar a task do VS Code já existente no repositório
 - **~** `resize` amplia os planos near/far do `glOrtho` (para o cone 3D não ser cortado).
 - **~** `drawScene`, `pickPrimitive`, `mouseControl`, `clearAll`, `printInteraction`
   atualizados para incluir o cone.
+- **~** `drawScene` desenha a **barra de seleção por último**: as caixas preenchidas
+  cobrem qualquer parte do cone que invada a área da aba, então o cone gerado **nunca
+  ultrapassa** o limite da aba de seleção de formas.
 - As primitivas originais (ponto, linha, retângulo, grade e menu) foram **mantidas**.
