@@ -1,91 +1,32 @@
-////////////////////////////////////////////////////////////////////////////////////
-// canvas.cpp  -  TRABALHO 1 (PP2) de Computacao Grafica - UEMS
+// canvas.cpp + cone + tranformações (para o cone)
 //
-// Aluno: Victor Rech Vendruscolo (numero 12 da lista => exercicio 12).
-// Programa base: canvas.cpp de Sumanta Guha (Chapter3/Canvas), obrigatorio pelo enunciado.
+// Trabalho 1 (PP2) de Computacao Grafica - UEMS.
+// Aluno: Victor Rech Vendruscolo.
+// Programa base: canvas.cpp de Sumanta Guha (Chapter3/Canvas).
 //
-// Este programa permite ao usuario desenhar formas simples sobre um canvas (tela):
-// ponto, linha, retangulo e, ACRESCENTADO NESTE TRABALHO, um CONE.
+// Permite desenhar ponto, linha, retangulo e cone sobre um canvas.
+// Interacao:
+//   - Clique esquerdo numa caixa da esquerda escolhe a primitiva.
+//   - Na area de desenho: um clique para ponto; dois cliques para linha,
+//     retangulo ou cone. Movendo o mouse entre os cliques ve-se a
+//     pre-visualizacao da primitiva em tempo real (em vermelho).
+//   - Cone: o 1o clique fixa o vertice; o mouse (vetor-vértice) define o
+//     tamanho e a direcao. Teclas (agem apeans no ultimo cone criado): 
+//     x/X y/Y z/Z para rotacao,+/- para escala e setas para translacao.
+//   - Botao direito abre o menu (Grid On/Off, Clear, Quit). ESC sai.
 //
-// ----------------------------------------------------------------------------------
-// COMO LER ESTE ARQUIVO
-// ----------------------------------------------------------------------------------
-// Todos os comentarios estao em portugues. Os comentarios marcados com "[T1]" indicam
-// TUDO que foi ACRESCENTADO ou ALTERADO em relacao ao canvas.cpp original do Sumanta
-// Guha. O que NAO tem [T1] e codigo original (apenas com o comentario traduzido).
-//   [T1-NOVO]     -> funcao/classe/variavel que nao existia no original.
-//   [T1-ALTERADO] -> trecho do original que foi modificado para incluir o cone.
-//
-// ----------------------------------------------------------------------------------
-// O QUE FOI ACRESCENTADO EM RELACAO AO canvas.cpp ORIGINAL
-// ----------------------------------------------------------------------------------
-// ITEM I do enunciado (obrigatorio para todos):
-//   * Monitoramento do movimento do mouse (callbacks glutPassiveMotionFunc /
-//     glutMotionFunc, mesmo recurso ensinado em Cap3/MouseMotion.cpp). Assim o
-//     usuario ve, EM TEMPO REAL, a primitiva mudar enquanto move o mouse, ANTES
-//     do clique final que a salva. Vale para LINHA, RETANGULO e CONE (efeito
-//     "rubber-band"/pre-visualizacao, desenhado em vermelho).
-//
-// ITEM II do enunciado (exercicio 12 - CONE):
-//   * Nova primitiva CONE, com um icone proprio na barra de selecao a esquerda.
-//   * O cone e desenhado com glutWireCone(raio, altura, fatias, aneis) - a mesma
-//     funcao usada na aula em Cap4/Objects.cpp e Cap4/Clown.cpp.
-//   * Colocacao interativa: 1o clique fixa o VERTICE (apice); movendo o mouse o cone
-//     e moldado a partir do vertice - o vetor 1o ponto -> mouse define o TAMANHO
-//     (altura/raio) E a DIRECAO para onde o cone aponta (como o retangulo muda de
-//     tamanho e de lado), com pre-visualizacao em tempo real; 2o clique salva.
-//   * Transformacoes geometricas aplicadas ao ULTIMO cone desenhado (o "cone ativo"),
-//     usando glTranslatef / glRotatef / glScalef, exatamente como em Cap4/Objects.cpp:
-//        - Rotacao:    x/X (eixo X), y/Y (eixo Y), z/Z (eixo Z)
-//        - Escala:     + (aumenta), - (diminui)
-//        - Translacao: setas do teclado (esquerda/direita/cima/baixo)
-//
-// ----------------------------------------------------------------------------------
-// PROCEDENCIA DE 2 RECURSOS QUE NAO ESTAO NO canvas.cpp BASE 
-// ----------------------------------------------------------------------------------
-// Todo o resto (classes+vector, glutWireCone, glPushMatrix/glTranslatef/glRotatef/
-// glScalef, glutSpecialFunc, sqrt, cos/sin, glOrtho...) vem do canvas.cpp e de outros
-// codigos das aulas (Cap3/MouseMotion.cpp, Cap4/Objects.cpp, Cap4/Clown.cpp, etc.).
-// Apenas dois recursos nao aparecem no canvas.cpp base:
-//   * atan2 (na funcao drawCone): trigonometria de transformacoes do CAP.4 do
-//     Sumanta Guha; usada so para achar a direcao do cone (angulo do vetor mouse).
-//   * glutPassiveMotionFunc (no main): a versao "passiva" (mouse sem estar clicado) do
-//     glutMotionFunc que aparece no Cap3/MouseMotion.cpp; e exigida pelo Item I, pois
-//     entre os dois cliques o botao esta solto.
-//
-// ----------------------------------------------------------------------------------
-// COMO O CONE 3D CONVIVE COM O CANVAS 2D
-// ----------------------------------------------------------------------------------
-// O canvas usa projecao ortografica (glOrtho) em coordenadas de pixel, sem iluminacao
-// e sem teste de profundidade. Para o cone (objeto 3D) aparecer com "cara" de cone
-// dentro dessa tela 2D, ele e desenhado em modo aramado (wireframe) com uma leve
-// inclinacao fixa (glRotatef de tilt), de modo que a base circular apareca como uma
-// elipse e as laterais formem o triangulo caracteristico. Como e wireframe, nao e
-// preciso iluminacao nem depth-test (fiel ao estilo do canvas.cpp original). A unica
-// mudanca na projecao foi ampliar os planos near/far do glOrtho para o cone inclinado
-// nao ser cortado; isso nao afeta as primitivas 2D, que ficam todas em z = 0.
-//
-// ----------------------------------------------------------------------------------
-// INTERACAO (resumo)
-// ----------------------------------------------------------------------------------
-//   * Clique esquerdo em uma caixa da esquerda para escolher a primitiva.
-//   * Depois, clique esquerdo na area de desenho:
-//        - PONTO: um clique.
-//        - LINHA/RETANGULO/CONE: dois cliques (movendo o mouse entre eles ve-se
-//          a pre-visualizacao em tempo real).
-//   * Teclas (transformam o ultimo cone): x X y Y z Z (rotacao), + - (escala),
-//     setas (translacao).
-//   * Clique direito abre o menu (Grid On/Off, Clear, Quit). ESC sai.
-//
-//  Base: Sumanta Guha (canvas.cpp). Extensoes: Trabalho 1 PP2 - CG.
-//
-////////////////////////////////////////////////////////////////////////////////////
-
+// Acréscimos:
+//   - atan2 (em drawCone): trigonometria de transformacoes do Cap.4 do Sumanta
+//     Guha; usada para achar a direcao do cone a partir do vetor do mouse e possibilitar
+//     que o cone possa ser moldado sua direção(2D) e tamanho com o mouse na pré-visualização
+//   - glutPassiveMotionFunc (em main): versao "passiva" (mouse sem botao clicado) do
+//     glutMotionFunc de Cap3/MouseMotion.cpp; necessaria para a pre-visualizacao
+//     entre os dois cliques, quando o botao esta solto.
 
 #include <cstdlib>
 #include <vector>
 #include <iostream>
-#include <cmath> // [T1] Para sqrt/cos/sin usados no tamanho do cone e no icone (como em MouseMotion.cpp).
+#include <cmath> // sqrt, atan2, cos, sin
 
 #ifdef __APPLE__
 #  include <GLUT/glut.h>
@@ -95,29 +36,24 @@
 
 using namespace std;
 
-// Constantes que identificam a primitiva selecionada.
 #define INACTIVE 0
 #define POINT 1
 #define LINE 2
 #define RECTANGLE 3
-#define CONE 4              // [T1-NOVO] Nova primitiva acrescentada neste trabalho.
-#define NUMBERPRIMITIVES 4  // [T1-ALTERADO] Agora sao 4 primitivas (era 3 no original).
+#define CONE 4
+#define NUMBERPRIMITIVES 4
+#define PI 3.14159265
 
-#define PI 3.14159265       // [T1-NOVO] Usado para desenhar a base eliptica do icone do cone.
-
-// Usa a extensao STL do C++.
-using namespace std;
-
-// Variaveis globais.
-static GLsizei width, height; // Tamanho da janela OpenGL (largura e altura).
+// Globais.
+static GLsizei width, height; // Tamanho da janela OpenGL.
 static float pointSize = 3.0; // Tamanho do ponto.
 static int primitive = INACTIVE; // Primitiva de desenho atual.
-static int pointCount = 0; // Quantidade de pontos ja informados (0 ou 1).
-static int tempX, tempY; // Coordenadas do primeiro ponto clicado.
-static int curX, curY; // [T1-NOVO] Posicao atual do mouse (para a pre-visualizacao em tempo real).
-static int isGrid = 1; // Existe grade (grid)?
+static int pointCount = 0; // Numero de pontos ja informados.
+static int tempX, tempY; // Primeiro ponto clicado.
+static int curX, curY; // Posicao atual do mouse (para a pre-visualizacao).
+static int isGrid = 1; // Ha grade?
 
-// Classe Ponto (original do canvas.cpp).
+// Classe Ponto.
 class Point
 {
 public:
@@ -125,15 +61,15 @@ public:
    {
 	  x = xVal; y = yVal;
    }
-   void drawPoint(void); // Funcao que desenha um ponto.
+   void drawPoint(void);
 private:
-   int x, y; // Coordenadas x e y do ponto.
+   int x, y; // Coordenadas do ponto.
    static float size; // Tamanho do ponto.
 };
 
-float Point::size = pointSize; // Define o tamanho do ponto.
+float Point::size = pointSize;
 
-// Funcao que desenha um ponto.
+// Desenha um ponto.
 void Point::drawPoint()
 {
    glPointSize(size);
@@ -142,16 +78,13 @@ void Point::drawPoint()
    glEnd();
 }
 
-// Vetor de pontos.
+// Vetor de pontos e iterador.
 vector<Point> points;
-
-// Iterador para percorrer o vetor de pontos.
 vector<Point>::iterator pointsIterator;
 
-// Funcao que desenha todos os pontos do vetor.
+// Desenha todos os pontos.
 void drawPoints(void)
 {
-   // Percorre o vetor de pontos desenhando cada um.
    pointsIterator = points.begin();
    while(pointsIterator != points.end() )
    {
@@ -160,7 +93,7 @@ void drawPoints(void)
    }
 }
 
-// Classe Linha (original do canvas.cpp).
+// Classe Linha.
 class Line
 {
 public:
@@ -170,11 +103,10 @@ public:
    }
    void drawLine();
 private:
-   int x1, y1, x2, y2; // Coordenadas x e y das duas extremidades.
+   int x1, y1, x2, y2; // Extremidades da linha.
 };
 
-
-// Funcao que desenha uma linha.
+// Desenha uma linha.
 void Line::drawLine()
 {
    glBegin(GL_LINES);
@@ -183,16 +115,13 @@ void Line::drawLine()
    glEnd();
 }
 
-// Vetor de linhas.
+// Vetor de linhas e iterador.
 vector<Line> lines;
-
-// Iterador para percorrer o vetor de linhas.
 vector<Line>::iterator linesIterator;
 
-// Funcao que desenha todas as linhas do vetor.
+// Desenha todas as linhas.
 void drawLines(void)
 {
-   // Percorre o vetor de linhas desenhando cada uma.
    linesIterator = lines.begin();
    while(linesIterator != lines.end() )
    {
@@ -201,7 +130,7 @@ void drawLines(void)
    }
 }
 
-// Classe Retangulo (original do canvas.cpp).
+// Classe Retangulo.
 class Rectangle
 {
 public:
@@ -211,26 +140,23 @@ public:
    }
    void drawRectangle();
 private:
-   int x1, y1, x2, y2; // Coordenadas x e y de dois vertices diagonalmente opostos.
+   int x1, y1, x2, y2; // Vertices diagonalmente opostos.
 };
 
-// Funcao que desenha um retangulo.
+// Desenha um retangulo.
 void Rectangle::drawRectangle()
 {
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(x1, y1, x2, y2);
 }
 
-// Vetor de retangulos.
+// Vetor de retangulos e iterador.
 vector<Rectangle> rectangles;
-
-// Iterador para percorrer o vetor de retangulos.
 vector<Rectangle>::iterator rectanglesIterator;
 
-// Funcao que desenha todos os retangulos do vetor.
+// Desenha todos os retangulos.
 void drawRectangles(void)
 {
-   // Percorre o vetor de retangulos desenhando cada um.
    rectanglesIterator = rectangles.begin();
    while(rectanglesIterator != rectangles.end() )
    {
@@ -239,102 +165,60 @@ void drawRectangles(void)
    }
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-// [T1-NOVO] Classe Cone (exercicio 12).
-//
-// Assim como as classes Line e Rectangle, o cone e definido por DOIS pontos:
-//   (x1, y1) = VERTICE (apice) do cone -> onde o usuario deu o 1o clique;
-//   (x2, y2) = posicao do mouse -> o vetor ate o vertice define o TAMANHO (distancia,
-//              via sqrt, como em Cap3/MouseMotion.cpp) e a DIRECAO (angulo, via atan2 -
-//              trigonometria do Cap.4 do Sumanta Guha). O cone e moldado em tempo real.
-// Alem disso guarda o estado de transformacoes geometricas proprias do teclado:
-// tres angulos de rotacao (angleX, angleY, angleZ) e um fator de escala (scale).
-//
-// O desenho segue a mesma ideia de Cap4/Objects.cpp: empilha a matriz, aplica as
-// transformacoes (glTranslatef/glRotatef/glScalef) e chama glutWireCone.
-////////////////////////////////////////////////////////////////////////////////////
+// Classe Cone. Definida por dois pontos, como em Line e Rectangle:
+// (x1,y1) = vertice/apice; (x2,y2) = posicao do mouse. Guarda tambem os
+// angulos de rotacao e a escala aplicados pelo teclado.
 class Cone
 {
 public:
    Cone(int x1Val, int y1Val, int x2Val, int y2Val)
    {
 	  x1 = x1Val; y1 = y1Val; x2 = x2Val; y2 = y2Val;
-	  angleX = 0.0; angleY = 0.0; angleZ = 0.0; // Sem rotacao inicial do usuario.
-	  scale = 1.0;                              // Escala neutra inicial.
+	  angleX = 0.0; angleY = 0.0; angleZ = 0.0;
+	  scale = 1.0;
    }
-   void drawCone();                       // Desenha o cone com suas transformacoes.
-
-   // Transformacoes geometricas aplicadas pelo teclado ao cone ativo.
-   void rotateX(float a) { angleX += a; }         // Acumula rotacao no eixo X.
-   void rotateY(float a) { angleY += a; }         // Acumula rotacao no eixo Y.
-   void rotateZ(float a) { angleZ += a; }         // Acumula rotacao no eixo Z.
-   void changeScale(float factor) { scale *= factor; } // Multiplica a escala atual.
-   void translate(int dx, int dy) { x1 += dx; y1 += dy; x2 += dx; y2 += dy; } // Move os 2 pontos.
+   void drawCone();
+   void rotateX(float a) { angleX += a; }
+   void rotateY(float a) { angleY += a; }
+   void rotateZ(float a) { angleZ += a; }
+   void changeScale(float factor) { scale *= factor; }
+   void translate(int dx, int dy) { x1 += dx; y1 += dy; x2 += dx; y2 += dy; }
 private:
-   int x1, y1, x2, y2;              // (x1,y1)=vertice/apice; (x2,y2)=ponto do mouse.
-   float angleX, angleY, angleZ;    // Angulos de rotacao (transformacao geometrica).
-   float scale;                     // Fator de escala uniforme (transformacao geometrica).
+   int x1, y1, x2, y2;
+   float angleX, angleY, angleZ; // Rotacoes do usuario.
+   float scale; // Escala do usuario.
 };
 
-// [T1-NOVO] Funcao que desenha um cone.
+// Desenha um cone.
 void Cone::drawCone()
 {
-   // O vetor do vertice (x1,y1) ate o ponto do mouse (x2,y2) define, ao mesmo tempo, o
-   // TAMANHO e a DIRECAO do cone - do mesmo jeito que o retangulo muda de tamanho e de
-   // lado conforme o mouse se afasta do 1o ponto.
+   // Tamanho pela distancia e direcao pelo angulo do vetor vertice->mouse.
    float dx = (float)(x2 - x1);
    float dy = (float)(y2 - y1);
-   float height = sqrt(dx * dx + dy * dy);      // Altura = distancia vertice -> mouse (sqrt, como em Cap3/MouseMotion.cpp).
-   float radius = 0.40 * height;                // Raio proporcional (mantem a forma de cone).
+   float height = sqrt(dx * dx + dy * dy);
+   float radius = 0.40 * height;
+   float dirAngle = atan2(dy, dx) * 180.0 / PI; // atan2: angulo de direcao mouse (ver cabecalho).
 
-   // [T1] atan2: angulo (em graus) da direcao do vetor vertice->mouse. atan2 e a
-   //      trigonometria de transformacoes vista no Cap.4 do Sumanta Guha; aqui ela so
-   //      converte o vetor (dx,dy) em um angulo para orientar o cone.
-   float dirAngle = atan2(dy, dx) * 180.0 / PI;
-
-   glPushMatrix();                       // Salva a matriz para nao afetar o resto da cena.
-
-   // 1) Leva o VERTICE (apice) do cone ate o ponto clicado no canvas.
-   glTranslatef(x1, y1, 0.0);
-
-   // 2) Transformacoes geometricas escolhidas pelo usuario (rotacao em torno do
-   //    vertice + escala).
-   glRotatef(angleZ, 0.0, 0.0, 1.0);
+   glPushMatrix();
+   glTranslatef(x1, y1, 0.0);                 // Vertice no ponto clicado.
+   glRotatef(angleZ, 0.0, 0.0, 1.0);          // Rotacoes do usuario.
    glRotatef(angleY, 0.0, 1.0, 0.0);
    glRotatef(angleX, 1.0, 0.0, 0.0);
-   glScalef(scale, scale, scale);
-
-   // 3) Aponta o cone na DIRECAO do mouse: gira em torno de Z levando a referencia
-   //    "para cima" (90 graus) ate a direcao do vetor vertice->mouse. Assim, como no
-   //    retangulo, mover o mouse em volta do 1o ponto muda o lado para onde o cone aponta.
-   glRotatef(dirAngle - 90.0, 0.0, 0.0, 1.0);
-
-   // 4) Inclinacao fixa para o cone 3D ficar "legivel" na tela ortografica 2D: a base
-   //    circular vira uma elipse e as laterais formam o triangulo caracteristico.
-   glRotatef(70.0, 1.0, 0.0, 0.0);
-
-   // 5) glutWireCone desenha a base em z = 0 e o APICE em z = altura. Para o VERTICE
-   //    ficar exatamente no ponto clicado, recuamos o cone de "altura" ao longo do
-   //    eixo: assim o apice vai para a origem local (o clique) e a base cresce a
-   //    partir do vertice, na direcao do mouse.
-   glTranslatef(0.0, 0.0, -height);
-
-   // 6) Desenha o cone em modo aramado (glutWireCone: raio da base, altura, fatias, aneis).
+   glScalef(scale, scale, scale);             // Escala do usuario.
+   glRotatef(dirAngle - 90.0, 0.0, 0.0, 1.0); // Aponta na direcao do mouse.
+   glRotatef(70.0, 1.0, 0.0, 0.0);            // Inclinacao para leitura 3D (base vira elipse).
+   glTranslatef(0.0, 0.0, -height);           // Poe o apice na origem (no clique).
    glutWireCone(radius, height, 20, 12);
-
-   glPopMatrix();                        // Restaura a matriz.
+   glPopMatrix();
 }
 
-// [T1-NOVO] Vetor de cones.
+// Vetor de cones e iterador.
 vector<Cone> cones;
-
-// [T1-NOVO] Iterador para percorrer o vetor de cones.
 vector<Cone>::iterator conesIterator;
 
-// [T1-NOVO] Funcao que desenha todos os cones do vetor.
+// Desenha todos os cones.
 void drawCones(void)
 {
-   // Percorre o vetor de cones desenhando cada um.
    conesIterator = cones.begin();
    while(conesIterator != cones.end() )
    {
@@ -343,101 +227,89 @@ void drawCones(void)
    }
 }
 
-// Funcao que desenha a caixa de selecao do PONTO na area de selecao (esquerda).
+// Desenha a caixa de selecao do ponto.
 void drawPointSelectionBox(void)
 {
-   if (primitive == POINT) glColor3f(1.0, 1.0, 1.0); // Destacada (selecionada).
-   else glColor3f(0.8, 0.8, 0.8); // Sem destaque.
+   if (primitive == POINT) glColor3f(1.0, 1.0, 1.0); // Destaque.
+   else glColor3f(0.8, 0.8, 0.8);
    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    glRectf(0.0, 0.9*height, 0.1*width, height);
 
-   // Desenha a borda preta.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Borda.
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(0.0, 0.9*height, 0.1*width, height);
 
-   // Desenha o icone de ponto.
-   glPointSize(pointSize);
+   glPointSize(pointSize); // Icone.
    glColor3f(0.0, 0.0, 0.0);
    glBegin(GL_POINTS);
       glVertex3f(0.05*width, 0.95*height, 0.0);
    glEnd();
 }
 
-// Funcao que desenha a caixa de selecao da LINHA na area de selecao (esquerda).
+// Desenha a caixa de selecao da linha.
 void drawLineSelectionBox(void)
 {
-   if (primitive == LINE) glColor3f(1.0, 1.0, 1.0); // Destacada (selecionada).
-   else glColor3f(0.8, 0.8, 0.8); // Sem destaque.
+   if (primitive == LINE) glColor3f(1.0, 1.0, 1.0); // Destaque.
+   else glColor3f(0.8, 0.8, 0.8);
    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    glRectf(0.0, 0.8*height, 0.1*width, 0.9*height);
 
-   // Desenha a borda preta.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Borda.
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(0.0, 0.8*height, 0.1*width, 0.9*height);
 
-   // Desenha o icone de linha.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Icone.
    glBegin(GL_LINES);
       glVertex3f(0.025*width, 0.825*height, 0.0);
       glVertex3f(0.075*width, 0.875*height, 0.0);
    glEnd();
 }
 
-// Funcao que desenha a caixa de selecao do RETANGULO na area de selecao (esquerda).
+// Desenha a caixa de selecao do retangulo.
 void drawRectangleSelectionBox(void)
 {
-   if (primitive == RECTANGLE) glColor3f(1.0, 1.0, 1.0); // Destacada (selecionada).
-   else glColor3f(0.8, 0.8, 0.8); // Sem destaque.
+   if (primitive == RECTANGLE) glColor3f(1.0, 1.0, 1.0); // Destaque.
+   else glColor3f(0.8, 0.8, 0.8);
    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    glRectf(0.0, 0.7*height, 0.1*width, 0.8*height);
 
-   // Desenha a borda preta.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Borda.
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(0.0, 0.7*height, 0.1*width, 0.8*height);
 
-   // Desenha o icone de retangulo.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Icone.
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(0.025*width, 0.735*height, 0.075*width, 0.765*height);
    glEnd();
 }
 
-// [T1-NOVO] Funcao que desenha a caixa de selecao do CONE na area de selecao (esquerda).
-// Desenha a 4a caixa (faixa 0.6h..0.7h) e um icone de cone: duas laterais que sobem
-// ate o apice e uma base eliptica (arco com cos/sin), como um cone visto de lado.
+// Desenha a caixa de selecao do cone. O icone e um cone visto de lado:
+// duas laterais ate o apice e uma base eliptica (arco com cos/sin).
 void drawConeSelectionBox(void)
 {
-   if (primitive == CONE) glColor3f(1.0, 1.0, 1.0); // Destacada (selecionada).
-   else glColor3f(0.8, 0.8, 0.8); // Sem destaque.
+   if (primitive == CONE) glColor3f(1.0, 1.0, 1.0); // Destaque.
+   else glColor3f(0.8, 0.8, 0.8);
    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    glRectf(0.0, 0.6*height, 0.1*width, 0.7*height);
 
-   // Desenha a borda preta.
-   glColor3f(0.0, 0.0, 0.0);
+   glColor3f(0.0, 0.0, 0.0); // Borda.
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    glRectf(0.0, 0.6*height, 0.1*width, 0.7*height);
 
-   // Desenha o icone de cone.
-   glColor3f(0.0, 0.0, 0.0);
-
-   // Laterais do cone: das extremidades da base ate o apice (topo).
+   glColor3f(0.0, 0.0, 0.0); // Laterais do cone.
    glBegin(GL_LINE_STRIP);
-      glVertex3f(0.030*width, 0.615*height, 0.0); // canto esquerdo da base
-      glVertex3f(0.050*width, 0.685*height, 0.0); // apice
-      glVertex3f(0.070*width, 0.615*height, 0.0); // canto direito da base
+      glVertex3f(0.030*width, 0.615*height, 0.0);
+      glVertex3f(0.050*width, 0.685*height, 0.0);
+      glVertex3f(0.070*width, 0.615*height, 0.0);
    glEnd();
 
-   // Base eliptica do cone (arco desenhado com cos/sin, como o circulo em circulo.cpp).
-   glBegin(GL_LINE_LOOP);
+   glBegin(GL_LINE_LOOP); // Base eliptica.
       for (float t = 0.0; t <= 2.0 * PI; t += PI / 20.0)
          glVertex3f(0.05*width + 0.02*width * cos(t), 0.615*height + 0.006*height * sin(t), 0.0);
    glEnd();
 }
 
-// Funcao que desenha a parte nao usada da area de selecao (abaixo das caixas).
+// Desenha a parte nao usada da area de selecao.
 void drawInactiveArea(void)
 {
    glColor3f(0.6, 0.6, 0.6);
@@ -449,13 +321,11 @@ void drawInactiveArea(void)
    glRectf(0.0, 0.0, 0.1*width, (1 - NUMBERPRIMITIVES*0.1)*height);
 }
 
-// [T1-NOVO] Funcao que desenha a PRE-VISUALIZACAO em tempo real enquanto uma primitiva
-// de dois cliques esta sendo colocada (substitui o antigo "drawTempPoint" do original).
-// (ITEM I) Enquanto pointCount == 1, mostra em VERMELHO a primitiva do 1o ponto
-// (tempX,tempY) ate a posicao atual do mouse (curX,curY), antes do clique final.
+// Desenha a pre-visualizacao (em vermelho) da primitiva em construcao,
+// do primeiro ponto ate a posicao atual do mouse.
 void drawPreview(void)
 {
-   glColor3f(1.0, 0.0, 0.0); // Cor de pre-visualizacao (vermelho).
+   glColor3f(1.0, 0.0, 0.0);
 
    if (primitive == LINE)
    {
@@ -471,19 +341,17 @@ void drawPreview(void)
    }
    else if (primitive == CONE)
    {
-      // Cone temporario: vertice no 1o clique, moldado ate a posicao atual do mouse.
       Cone temp(tempX, tempY, curX, curY);
       temp.drawCone();
    }
 
-   // Marca tambem o primeiro ponto ja fixado.
-   glPointSize(pointSize);
+   glPointSize(pointSize); // Marca o primeiro ponto.
    glBegin(GL_POINTS);
       glVertex3f(tempX, tempY, 0.0);
    glEnd();
 }
 
-// Funcao que desenha a grade (grid).
+// Desenha a grade.
 void drawGrid(void)
 {
    int i;
@@ -507,74 +375,66 @@ void drawGrid(void)
    glDisable(GL_LINE_STIPPLE);
 }
 
-// Rotina de desenho (chamada a cada redesenho da tela).
+// Rotina de desenho.
 void drawScene(void)
 {
    glClear(GL_COLOR_BUFFER_BIT);
    glColor3f(0.0, 0.0, 0.0);
 
-   // [T1-ALTERADO] 1) Primeiro as primitivas desenhadas pelo usuario e a grade.
    drawPoints();
    drawLines();
    drawRectangles();
-   drawCones();              // [T1] Desenha os cones ja salvos.
+   drawCones();
 
-   // [T1] (ITEM I) Pre-visualizacao em tempo real da linha/retangulo/cone em construcao.
+   // Pre-visualizacao da primitiva de dois cliques em construcao.
    if ( ((primitive == LINE) || (primitive == RECTANGLE) || (primitive == CONE)) &&
 	   (pointCount == 1) ) drawPreview();
 
    if (isGrid) drawGrid();
 
-   // [T1-ALTERADO] 2) A barra de selecao e desenhada POR ULTIMO: como suas caixas sao
-   //    retangulos preenchidos (glRectf), elas cobrem qualquer parte do cone que tenha
-   //    invadido a area da aba. Assim o cone gerado nunca ultrapassa o limite da aba de
-   //    selecao de formas. (No original a barra era desenhada primeiro.)
+   // Barra de selecao por ultimo: cobre o que o cone tiver invadido da area da aba.
    drawPointSelectionBox();
    drawLineSelectionBox();
    drawRectangleSelectionBox();
-   drawConeSelectionBox();   // [T1] 4a caixa: primitiva cone.
+   drawConeSelectionBox();
    drawInactiveArea();
 
    glutSwapBuffers();
 }
 
-// Funcao que escolhe a primitiva quando o clique cai na area de selecao (esquerda).
+// Escolhe a primitiva quando o clique cai na area de selecao.
 void pickPrimitive(int y)
 {
    if ( y < (1- NUMBERPRIMITIVES*0.1)*height ) primitive = INACTIVE;
-   else if ( y < (1 - 3*0.1)*height ) primitive = CONE;      // [T1-ALTERADO] Faixa da 4a caixa.
+   else if ( y < (1 - 3*0.1)*height ) primitive = CONE;
    else if ( y < (1 - 2*0.1)*height ) primitive = RECTANGLE;
    else if ( y < (1 - 1*0.1)*height ) primitive = LINE;
    else primitive = POINT;
 }
 
-// Rotina de callback do mouse (clique).
+// Callback do clique do mouse.
 void mouseControl(int button, int state, int x, int y)
 {
    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
    {
-      y = height - y; // Corrige da coordenada do mouse para a do OpenGL (y invertido).
+      y = height - y; // Coordenada do mouse -> OpenGL.
 
-	  // Clique fora do canvas - nao faz nada.
-      if ( x < 0 || x > width || y < 0 || y > height ) ;
+      if ( x < 0 || x > width || y < 0 || y > height ) ; // Fora do canvas.
 
-	  // Clique na area de selecao (esquerda).
-      else if ( x < 0.1*width )
+      else if ( x < 0.1*width ) // Area de selecao.
 	  {
 	     pickPrimitive(y);
 		 pointCount = 0;
 	  }
 
-	  // Clique dentro do canvas (area de desenho).
-      else
+      else // Area de desenho.
 	  {
 	     if (primitive == POINT) points.push_back( Point(x,y) );
          else if (primitive == LINE)
 		 {
 	        if (pointCount == 0)
 			{
-               tempX = x; tempY = y;
-               curX = x; curY = y; // [T1] Inicia a pre-visualizacao no proprio ponto.
+               tempX = x; tempY = y; curX = x; curY = y;
 		       pointCount++;
 			}
 	        else
@@ -587,8 +447,7 @@ void mouseControl(int button, int state, int x, int y)
 		 {
 	        if (pointCount == 0)
 			{
-               tempX = x; tempY = y;
-               curX = x; curY = y; // [T1] Inicia a pre-visualizacao no proprio ponto.
+               tempX = x; tempY = y; curX = x; curY = y;
 		       pointCount++;
 			}
 	        else
@@ -597,17 +456,15 @@ void mouseControl(int button, int state, int x, int y)
 		       pointCount = 0;
 			}
 		 }
-         else if (primitive == CONE)     // [T1-NOVO] Colocacao do cone em dois cliques.
+         else if (primitive == CONE)
 		 {
 	        if (pointCount == 0)
 			{
-               tempX = x; tempY = y;    // 1o clique: vertice (apice) do cone.
-               curX = x; curY = y;
+               tempX = x; tempY = y; curX = x; curY = y; // Vertice.
 		       pointCount++;
 			}
 	        else
 			{
-               // 2o clique: (x2,y2) = ponto do mouse; o vetor define tamanho+direcao e salva.
                cones.push_back( Cone(tempX, tempY, x, y) );
 		       pointCount = 0;
 			}
@@ -617,16 +474,14 @@ void mouseControl(int button, int state, int x, int y)
    glutPostRedisplay();
 }
 
-// [T1-NOVO] Rotina de callback do MOVIMENTO do mouse (ITEM I).
-// E chamada continuamente enquanto o mouse se move. Enquanto o segundo ponto ainda
-// nao foi dado (pointCount == 1), atualiza a posicao atual do mouse e pede redesenho,
-// produzindo a pre-visualizacao em tempo real da primitiva.
+// Callback do movimento do mouse: atualiza a pre-visualizacao enquanto
+// falta o segundo clique.
 void mouseMotion(int x, int y)
 {
    if (pointCount == 1)
    {
       curX = x;
-      curY = height - y; // Converte para coordenadas do OpenGL (y invertido).
+      curY = height - y;
       glutPostRedisplay();
    }
 }
@@ -634,23 +489,20 @@ void mouseMotion(int x, int y)
 // Rotina de inicializacao.
 void setup(void)
 {
-   glClearColor(1.0, 1.0, 1.0, 0.0); // Fundo branco.
+   glClearColor(1.0, 1.0, 1.0, 0.0);
 }
 
-// Rotina de redimensionamento da janela OpenGL.
+// Rotina de redimensionamento da janela.
 void resize(int w, int h)
 {
    glViewport(0, 0, (GLsizei)w, (GLsizei)h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
 
-   // Define a caixa de visualizacao igual as dimensoes da janela.
-   // [T1-ALTERADO] Os planos near/far foram ampliados (de -1..1 para -maxDim..maxDim)
-   // para o cone 3D inclinado nao ser cortado. As primitivas 2D ficam em z = 0 e nao mudam.
+   // near/far ampliado (-maxDim..maxDim) para o cone 3D inclinado nao ser cortado.
    float maxDim = (w > h) ? (float)w : (float)h;
    glOrtho(0.0, (float)w, 0.0, (float)h, -maxDim, maxDim);
 
-   // Passa o tamanho da janela OpenGL para as variaveis globais.
    width = w;
    height = h;
 
@@ -658,31 +510,28 @@ void resize(int w, int h)
    glLoadIdentity();
 }
 
-// Rotina de processamento do teclado (teclas comuns).
-// [T1-ALTERADO] As teclas de transformacao geometrica agem sobre o ULTIMO cone
-// desenhado (o "cone ativo"), usando os metodos da classe Cone.
+// Teclado: transforma o ultimo cone (rotacao e escala).
 void keyInput(unsigned char key, int x, int y)
 {
    switch (key)
    {
-      case 27: // ESC sai do programa.
+      case 27: // ESC.
          exit(0);
          break;
-      case 'x': if (!cones.empty()) cones.back().rotateX( 5.0); glutPostRedisplay(); break; // [T1]
-      case 'X': if (!cones.empty()) cones.back().rotateX(-5.0); glutPostRedisplay(); break; // [T1]
-      case 'y': if (!cones.empty()) cones.back().rotateY( 5.0); glutPostRedisplay(); break; // [T1]
-      case 'Y': if (!cones.empty()) cones.back().rotateY(-5.0); glutPostRedisplay(); break; // [T1]
-      case 'z': if (!cones.empty()) cones.back().rotateZ( 5.0); glutPostRedisplay(); break; // [T1]
-      case 'Z': if (!cones.empty()) cones.back().rotateZ(-5.0); glutPostRedisplay(); break; // [T1]
-      case '+': if (!cones.empty()) cones.back().changeScale(1.1); glutPostRedisplay(); break; // [T1]
-      case '-': if (!cones.empty()) cones.back().changeScale(0.9); glutPostRedisplay(); break; // [T1]
+      case 'x': if (!cones.empty()) cones.back().rotateX( 5.0); glutPostRedisplay(); break;
+      case 'X': if (!cones.empty()) cones.back().rotateX(-5.0); glutPostRedisplay(); break;
+      case 'y': if (!cones.empty()) cones.back().rotateY( 5.0); glutPostRedisplay(); break;
+      case 'Y': if (!cones.empty()) cones.back().rotateY(-5.0); glutPostRedisplay(); break;
+      case 'z': if (!cones.empty()) cones.back().rotateZ( 5.0); glutPostRedisplay(); break;
+      case 'Z': if (!cones.empty()) cones.back().rotateZ(-5.0); glutPostRedisplay(); break;
+      case '+': if (!cones.empty()) cones.back().changeScale(1.1); glutPostRedisplay(); break;
+      case '-': if (!cones.empty()) cones.back().changeScale(0.9); glutPostRedisplay(); break;
       default:
          break;
    }
 }
 
-// [T1-NOVO] Callback das teclas especiais (setas) - translada o ultimo cone
-// (transformacao geometrica). Usa glutSpecialFunc/GLUT_KEY_*, como em Cap4/Objects.cpp.
+// Teclas de seta: translada o ultimo cone.
 void specialKeyInput(int key, int x, int y)
 {
    if (cones.empty()) return;
@@ -693,18 +542,18 @@ void specialKeyInput(int key, int x, int y)
    glutPostRedisplay();
 }
 
-// Limpa o canvas e reinicia para um novo desenho.
+// Limpa o canvas.
 void clearAll(void)
 {
    points.clear();
    lines.clear();
    rectangles.clear();
-   cones.clear();       // [T1-ALTERADO] Tambem limpa os cones.
+   cones.clear();
    primitive = INACTIVE;
    pointCount = 0;
 }
 
-// Callback do menu do botao direito.
+// Menu do botao direito.
 void rightMenu(int id)
 {
    if (id==1)
@@ -715,7 +564,7 @@ void rightMenu(int id)
    if (id==2) exit(0);
 }
 
-// Callback do submenu (grade).
+// Submenu da grade.
 void grid_menu(int id)
 {
    if (id==3) isGrid = 1;
@@ -723,7 +572,7 @@ void grid_menu(int id)
    glutPostRedisplay();
 }
 
-// Funcao que cria o menu.
+// Cria o menu.
 void makeMenu(void)
 {
    int sub_menu;
@@ -738,14 +587,14 @@ void makeMenu(void)
    glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
-// Rotina que imprime as instrucoes de interacao na janela do C++ (terminal).
+// Imprime as instrucoes no terminal.
 void printInteraction(void)
 {
    cout << "Interaction:" << endl;
    cout << "Left click on a box on the left to select a primitive." << endl
         << "Then left click on the drawing area: once for point, twice for line, rectangle or cone." << endl
-        << "While placing, move the mouse to preview the primitive in real time (Item I)." << endl // [T1]
-        << "Cone transforms (last cone): x/X y/Y z/Z rotate, +/- scale, arrow keys translate." << endl // [T1]
+        << "While placing, move the mouse to preview the primitive in real time." << endl
+        << "Cone transforms (last cone): x/X y/Y z/Z rotate, +/- scale, arrow keys translate." << endl
         << "Right click for menu options." <<  endl;
 }
 
@@ -757,21 +606,17 @@ int main(int argc, char **argv)
    glutInitDisplayMode(GLUT_SINGLE | GLUT_DOUBLE);
    glutInitWindowSize(500, 500);
    glutInitWindowPosition(100, 100);
-   glutCreateWindow("canvas.cpp - Trabalho 1 (Cone)"); // [T1] Titulo da janela.
+   glutCreateWindow("canvas.cpp - Trabalho 1 (Cone)");
    setup();
    glutDisplayFunc(drawScene);
    glutReshapeFunc(resize);
    glutKeyboardFunc(keyInput);
-   glutSpecialFunc(specialKeyInput);   // [T1] Setas: translacao do cone.
+   glutSpecialFunc(specialKeyInput);
    glutMouseFunc(mouseControl);
-
-   // [T1] (ITEM I) Monitoramento do movimento do mouse para a pre-visualizacao em tempo real.
-   // PassiveMotion: mouse movido SEM botao pressionado (o caso entre os dois cliques).
-   // Motion: mouse movido COM botao pressionado (registrado por robustez).
-   glutPassiveMotionFunc(mouseMotion);
+   glutPassiveMotionFunc(mouseMotion); // passive: mouse sem botao clicado (ver cabecalho).
    glutMotionFunc(mouseMotion);
 
-   makeMenu(); // Cria o menu.
+   makeMenu();
 
    glutMainLoop();
 
