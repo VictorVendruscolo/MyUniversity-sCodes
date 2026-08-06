@@ -1,222 +1,344 @@
 /* Trabalho 2 - Sistemas Operacionais - Victor Rech Vendruscolo
- - Arquitetura: Multiprocesso Monothread.
- - Descrição: Processamento de dados simultâneo.
- - Sincronização: Contadores atômicos sobre Memória Partilhada.
- - Memória: Alocação própria via mapa de bits e endereçamento relativo. 
+ *
+ * Arquitetura : Multiprocesso monothread (processo pai + 3 processos filhos).
+ *
+ * IPC         : exclusivamente memoria compartilhada (shm_open + mmap), nos
+ *                moldes dos exemplos prod/cons do livro. Cada processo faz o
+ *                seu proprio mmap, portanto o ponteiro inicial 'ptr' guarda
+ *                enderecos diferentes em cada processo ainda que aponte para
+ *                a mesma regiao. Por isso os "ponteiros" da lista encadeada L
+ *                sao deslocamentos (indices) em relacao ao inicio da regiao,
+ *                e nunca enderecos reais.
+ *
+ * Sincronizacao: apenas variaveis contadoras compartilhadas. Cada contadora
+ *                tem UM UNICO ESCRITOR e um unico leitor, como o par in/out do
+ *                produtor-consumidor do livro. Nao existe leitura-modificacao-
+ *                escrita concorrente sobre nenhuma variavel, de modo que
+ *                leituras e escritas comuns de inteiros alinhados bastam
+ *                (espera ocupada). NAO ha semaforos, mutexes nem instrucoes
+ *                atomicas.
+ *
+ * Memoria     : alocador proprio dentro da regiao compartilhada, gerenciado
+ *                por mapa de bits. O mapa e criado e inicializado pelo processo
+ *                pai, unico responsavel pela alocacao de nos; cada processo
+ *                filho desaloca apenas os nos que ele mesmo remove de L.
+ *
+ * Paralelismo : os 4 processos progridem simultaneamente sobre a mesma lista L
+ *                (encadeamento em pipeline), nunca uma etapa por vez.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
-#include <string.h>
 
-#define MAX_NODES 1000050
-#define END_OF_LIST 0xFFFFFFFF
-#define SHM_NAME "/trabalho2_so_shm"
+#define MAX_NOS      1000050u
+#define FIM_DA_LISTA 0xFFFFFFFFu /* substitui o NULL no encadeamento         */
+#define SENTINELA    0xFFFFFFFFu /* valor do ultimo no: marca fim da entrada */
+#define NENHUM       0xFFFFFFFFu /* "nenhum no" para as variaveis locais     */
+#define SHM_NOME     "/trabalho2_so_shm"
 
-// Nó usando offset garante que processos com endereços base distintos não crashem
+/* No da lista L: 'prox' e um deslocamento dentro da regiao compartilhada. */
 typedef struct {
-    unsigned int value;
-    unsigned int next;
-} Node;
+    unsigned int valor;
+    unsigned int prox;
+} No;
 
-// Estrutura unificada para mapeamento na Memória Compartilhada (IPC)
+/* Registro que descreve todo o conteudo da regiao de memoria compartilhada. */
 typedef struct {
-    Node pool[MAX_NODES];
-    volatile unsigned char bitmap[MAX_NODES]; 
-    volatile int items_for_p1;
-    volatile int items_for_p2;
-    volatile int items_for_p3;
-    volatile int p0_done;
-    volatile int p1_done;
-    volatile int p2_done;
-    unsigned int dummy_head;
-} SharedMem;
+    No            buffer_nos[MAX_NOS]; /* buffer proprio de nos             */
+    unsigned char mapa_bits[MAX_NOS];  /* 0 = livre, 1 = ocupado            */
 
-// Alocador centralizado no Processo Pai (varredura circular)
-unsigned int allocate_node(SharedMem* shm) {
-    static unsigned int last_alloc = 0;
-    for (unsigned int i = 0; i < MAX_NODES; i++) {
-        unsigned int idx = (last_alloc + i) % MAX_NODES;
-        if (shm->bitmap[idx] == 0) {
-            shm->bitmap[idx] = 1;
-            last_alloc = (idx + 1) % MAX_NODES;
-            return idx;
-        }
+    /* Contadoras compartilhadas, cada uma com um unico processo escritor.
+     * Contam quantos nos ja foram liberados para a etapa seguinte, impedindo
+     * que um processo ultrapasse o anterior e leia L em estado inconsistente. */
+    unsigned int cont_lidos;   /* escrita so pelo pai      */
+    unsigned int cont_sem_par; /* escrita so pelo filho 1  */
+    unsigned int cont_primos;  /* escrita so pelo filho 2  */
+
+    unsigned int cabeca;       /* deslocamento do no cabeca de L */
+} MemCompartilhada;
+
+/* O mapa usa uma posicao por no (e nao bits empacotados) de proposito: com
+ * bits empacotados, liberar um no exigiria ler-alterar-gravar um byte
+ * compartilhado com outros 7 nos, o que so seria seguro com instrucao atomica.
+ * Com uma posicao por no, cada posicao tem um unico escritor de cada vez: o
+ * pai grava 1 ao alocar e apenas o filho que remove o no grava 0. */
+
+/* ------------------------- acesso a memoria compartilhada ------------------ */
+
+/* Mapeia a regiao compartilhada no espaco de enderecamento do processo e
+ * devolve o ponteiro inicial (void *) da regiao. Cada processo guarda esse
+ * ponteiro inicial em 'ptr' e trabalha com um segundo ponteiro, 'mem', que
+ * sobrepoe o registro a mesma regiao. */
+static void *mapeia_memoria(int criar)
+{
+    int   shm_fd;
+    void *ptr;
+
+    shm_fd = shm_open(SHM_NOME, criar ? (O_CREAT | O_RDWR) : O_RDWR, 0666);
+    if (shm_fd == -1) {
+        perror("shm_open");
+        exit(1);
     }
-    return END_OF_LIST;
+
+    if (criar && ftruncate(shm_fd, sizeof(MemCompartilhada)) == -1) {
+        perror("ftruncate");
+        exit(1);
+    }
+
+    ptr = mmap(0, sizeof(MemCompartilhada), PROT_READ | PROT_WRITE,
+               MAP_SHARED, shm_fd, 0);
+    if (ptr == MAP_FAILED) {
+        perror("mmap");
+        exit(1);
+    }
+    close(shm_fd);
+
+    return ptr;
 }
 
-int is_prime(unsigned int n) {
+/* ------------------------------ alocador ---------------------------------- */
+
+/* Somente o processo pai chama esta funcao (unico responsavel por alocar). */
+static unsigned int aloca_no(volatile MemCompartilhada *mem)
+{
+    static unsigned int ultimo = 0;
+
+    for (;;) {
+        for (unsigned int i = 0; i < MAX_NOS; i++) {
+            unsigned int k = (ultimo + i) % MAX_NOS;
+            if (mem->mapa_bits[k] == 0) {
+                mem->mapa_bits[k] = 1;
+                ultimo = (k + 1) % MAX_NOS;
+                return k;
+            }
+        }
+        /* buffer cheio: espera ocupada ate algum filho desalocar um no */
+    }
+}
+
+/* Cada processo filho so desaloca os nos que ele mesmo removeu de L. */
+static void desaloca_no(volatile MemCompartilhada *mem, unsigned int k)
+{
+    mem->mapa_bits[k] = 0;
+}
+
+/* ------------------------------ auxiliares -------------------------------- */
+
+/* Testa divisores apenas ate a raiz quadrada de n (i <= n/i evita estouro). */
+static int eh_primo(unsigned int n)
+{
     if (n <= 1) return 0;
-    if (n == 2 || n == 3) return 1;
+    if (n <= 3) return 1;
     if (n % 2 == 0 || n % 3 == 0) return 0;
-    for (unsigned int i = 5; i * i <= n; i += 6) {
+    for (unsigned int i = 5; i <= n / i; i += 6) {
         if (n % i == 0 || n % (i + 2) == 0) return 0;
     }
     return 1;
 }
 
-// Filtro 1: Remove pares > 2
-void process_p1(SharedMem* shm) {
-    unsigned int prev = shm->dummy_head;
-    unsigned int pending_p1 = END_OF_LIST; // Delay release
-    
-    while (1) {
-        while (shm->items_for_p1 == 0 && !shm->p0_done) { } // Espera ativa
-        if (shm->items_for_p1 == 0 && shm->p0_done) break;
+/* --------------------------- processos adicionais -------------------------- */
 
-        __sync_fetch_and_sub(&shm->items_for_p1, 1); // Consumo atômico
+/* Filho 1: percorre L e remove os numeros pares maiores que 2.
+ *
+ * Um no mantido em L so e liberado para o filho 2 (cont_sem_par++) depois que
+ * este processo ja avancou para o proximo no mantido. Nesse instante o campo
+ * 'prox' do no liberado e definitivo, pois este processo nunca mais o altera.
+ * E essa espera de um no que dispensa qualquer trava entre as etapas. */
+static void processo_remove_pares(void)
+{
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
-        unsigned int curr;
-        while ((curr = shm->pool[prev].next) == END_OF_LIST) { }
+    unsigned int ant        = mem->cabeca; /* ultimo no mantido por este processo */
+    unsigned int a_liberar  = NENHUM;      /* no mantido aguardando liberacao     */
+    unsigned int consumidos = 0;           /* contadora local de nos ja vistos    */
 
-        unsigned int val = shm->pool[curr].value;
-        if (val > 2 && val % 2 == 0) {
-            shm->pool[prev].next = shm->pool[curr].next; // Remove
-            shm->bitmap[curr] = 0;                       // Desaloca
+    for (;;) {
+        while (consumidos == mem->cont_lidos)
+            ; /* espera ocupada: o pai ainda nao liberou outro no */
+        consumidos++;
+
+        unsigned int atual = mem->buffer_nos[ant].prox;
+        unsigned int valor = mem->buffer_nos[atual].valor;
+
+        if (valor != SENTINELA && valor > 2 && valor % 2 == 0) {
+            mem->buffer_nos[ant].prox = mem->buffer_nos[atual].prox; /* remove */
+            desaloca_no(mem, atual);                                 /* libera */
         } else {
-            prev = curr;
-            if (pending_p1 != END_OF_LIST) {
-                __sync_fetch_and_add(&shm->items_for_p2, 1);
+            ant = atual;
+            if (a_liberar != NENHUM)
+                mem->cont_sem_par++;
+            a_liberar = atual;
+
+            if (valor == SENTINELA) {
+                mem->cont_sem_par++; /* libera a propria sentinela e encerra */
+                break;
             }
-            pending_p1 = curr;
         }
     }
-    if (pending_p1 != END_OF_LIST) {
-        __sync_fetch_and_add(&shm->items_for_p2, 1);
-    }
-    shm->p1_done = 1;
-    exit(0); // Destrói o processo filho
-}
 
-// Filtro 2: Remove não primos
-void process_p2(SharedMem* shm) {
-    unsigned int prev = shm->dummy_head;
-    unsigned int pending_p2 = END_OF_LIST;
-    
-    while (1) {
-        while (shm->items_for_p2 == 0 && !shm->p1_done) { }
-        if (shm->items_for_p2 == 0 && shm->p1_done) break;
-
-        __sync_fetch_and_sub(&shm->items_for_p2, 1);
-
-        unsigned int curr;
-        while ((curr = shm->pool[prev].next) == END_OF_LIST) { }
-
-        unsigned int val = shm->pool[curr].value;
-        if (!is_prime(val)) {
-            shm->pool[prev].next = shm->pool[curr].next;
-            shm->bitmap[curr] = 0;
-        } else {
-            prev = curr;
-            if (pending_p2 != END_OF_LIST) {
-                __sync_fetch_and_add(&shm->items_for_p3, 1);
-            }
-            pending_p2 = curr;
-        }
-    }
-    if (pending_p2 != END_OF_LIST) {
-        __sync_fetch_and_add(&shm->items_for_p3, 1);
-    }
-    shm->p2_done = 1;
+    munmap(ptr, sizeof(MemCompartilhada));
     exit(0);
 }
 
-// Consumidor 3: Escreve no arquivo
-void process_p3(SharedMem* shm) {
-    unsigned int prev = shm->dummy_head;
-    
-    FILE *out_f = fopen("out.txt", "w");
-    if (!out_f) exit(1);
+/* Filho 2: percorre L e remove os numeros que nao sao primos. */
+static void processo_remove_nao_primos(void)
+{
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
-    while (1) {
-        while (shm->items_for_p3 == 0 && !shm->p2_done) { }
-        if (shm->items_for_p3 == 0 && shm->p2_done) break;
+    unsigned int ant        = mem->cabeca;
+    unsigned int a_liberar  = NENHUM;
+    unsigned int consumidos = 0;
 
-        __sync_fetch_and_sub(&shm->items_for_p3, 1);
+    for (;;) {
+        while (consumidos == mem->cont_sem_par)
+            ; /* espera ocupada: o filho 1 ainda nao liberou outro no */
+        consumidos++;
 
-        unsigned int curr;
-        while ((curr = shm->pool[prev].next) == END_OF_LIST) { }
+        unsigned int atual = mem->buffer_nos[ant].prox;
+        unsigned int valor = mem->buffer_nos[atual].valor;
 
-        fprintf(out_f, "%u ", shm->pool[curr].value);
-        fflush(out_f);
+        if (valor != SENTINELA && !eh_primo(valor)) {
+            mem->buffer_nos[ant].prox = mem->buffer_nos[atual].prox;
+            desaloca_no(mem, atual);
+        } else {
+            ant = atual;
+            if (a_liberar != NENHUM)
+                mem->cont_primos++;
+            a_liberar = atual;
 
-        prev = curr;
+            if (valor == SENTINELA) {
+                mem->cont_primos++;
+                break;
+            }
+        }
     }
-    
-    fclose(out_f);
+
+    munmap(ptr, sizeof(MemCompartilhada));
     exit(0);
 }
 
-// Processo 0: Pai
-int main() {
-    shm_unlink(SHM_NAME); // Limpeza preventiva
+/* Filho 3: imprime os numeros primos armazenados em L. */
+static void processo_imprime_primos(void)
+{
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
-    // Cria arquivo virtual de Memória Compartilhada no Kernel
-    int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0600);
-    if (shm_fd < 0) return 1;
+    unsigned int ant        = mem->cabeca;
+    unsigned int consumidos = 0;
 
-    // Dimensiona
-    if (ftruncate(shm_fd, sizeof(SharedMem)) == -1) return 1;
+    FILE *saida = fopen("out.txt", "w");
+    if (saida == NULL) {
+        perror("out.txt");
+        exit(1);
+    }
 
-    // Mapeia para o espaço de RAM do processo Pai
-    SharedMem* shm = mmap(0, sizeof(SharedMem), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-    if (shm == MAP_FAILED) return 1;
+    for (;;) {
+        while (consumidos == mem->cont_primos)
+            ; /* espera ocupada: o filho 2 ainda nao liberou outro no */
+        consumidos++;
 
-    memset(shm, 0, sizeof(SharedMem));
-    shm->dummy_head = allocate_node(shm);
-    shm->pool[shm->dummy_head].value = 0;
-    shm->pool[shm->dummy_head].next = END_OF_LIST;
+        unsigned int atual = mem->buffer_nos[ant].prox;
+        unsigned int valor = mem->buffer_nos[atual].valor;
 
-    // Clona o espaço em 3 novos processos independentes
+        if (valor == SENTINELA)
+            break;
+
+        fprintf(saida, "%u ", valor);
+        ant = atual;
+    }
+
+    fclose(saida);
+    munmap(ptr, sizeof(MemCompartilhada));
+    exit(0);
+}
+
+/* ------------------------------ processo pai ------------------------------- */
+
+int main(void)
+{
+    shm_unlink(SHM_NOME); /* limpeza preventiva de execucoes anteriores */
+
+    void *ptr = mapeia_memoria(1);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
+
+    /* Mapa de bits e contadoras criados e inicializados pelo processo pai. */
+    memset(ptr, 0, sizeof(MemCompartilhada));
+
+    /* Lista L com no cabeca: simplifica a remocao do primeiro elemento. */
+    mem->cabeca = aloca_no(mem);
+    mem->buffer_nos[mem->cabeca].valor = 0;
+    mem->buffer_nos[mem->cabeca].prox  = FIM_DA_LISTA;
+
+    /* Primeiro sao criados os 3 processos adicionais... */
     pid_t p1 = fork();
-    if (p1 == 0) process_p1(shm);
+    if (p1 == 0) processo_remove_pares();
 
     pid_t p2 = fork();
-    if (p2 == 0) process_p2(shm);
+    if (p2 == 0) processo_remove_nao_primos();
 
     pid_t p3 = fork();
-    if (p3 == 0) process_p3(shm);
+    if (p3 == 0) processo_imprime_primos();
 
-    FILE *f = fopen("in.txt", "r");
-    if (!f) return 1;
-
-    unsigned int tail = shm->dummy_head;
-    unsigned int val;
-    unsigned int pending_p0 = END_OF_LIST;
-
-    while (fscanf(f, "%u", &val) == 1) {
-        unsigned int new_node = allocate_node(shm);
-        shm->pool[new_node].value = val;
-        shm->pool[new_node].next = END_OF_LIST;
-
-        shm->pool[tail].next = new_node;
-        tail = new_node;
-
-        if (pending_p0 != END_OF_LIST) {
-            __sync_fetch_and_add(&shm->items_for_p1, 1);
-        }
-        pending_p0 = new_node;
+    /* ...e so depois o pai le in.txt e insere no final de L. */
+    FILE *entrada = fopen("in.txt", "r");
+    if (entrada == NULL) {
+        perror("in.txt");
+        return 1;
     }
-    fclose(f);
 
-    if (pending_p0 != END_OF_LIST) {
-        __sync_fetch_and_add(&shm->items_for_p1, 1);
+    unsigned int fim       = mem->cabeca; /* ultimo no de L */
+    unsigned int a_liberar = NENHUM;      /* no inserido aguardando liberacao */
+    unsigned int valor;
+
+    while (fscanf(entrada, "%u", &valor) == 1) {
+        unsigned int novo = aloca_no(mem);
+        mem->buffer_nos[novo].valor = valor;
+        mem->buffer_nos[novo].prox  = FIM_DA_LISTA;
+
+        mem->buffer_nos[fim].prox = novo;
+        fim = novo;
+
+        /* o no anterior ja tem 'prox' definitivo: pode ser lido pelo filho 1 */
+        if (a_liberar != NENHUM)
+            mem->cont_lidos++;
+        a_liberar = novo;
     }
-    shm->p0_done = 1;
-    
-    // Aguarda finalização física de todos os filhos
+    fclose(entrada);
+
+    /* Ultimo no com valor especial (max unsigned): avisa os demais processos
+     * que a entrada terminou, dispensando qualquer outra variavel de controle. */
+    unsigned int ultimo = aloca_no(mem);
+    mem->buffer_nos[ultimo].valor = SENTINELA;
+    mem->buffer_nos[ultimo].prox  = FIM_DA_LISTA;
+    mem->buffer_nos[fim].prox = ultimo;
+    fim = ultimo;
+
+    if (a_liberar != NENHUM)
+        mem->cont_lidos++;
+    mem->cont_lidos++; /* libera a sentinela */
+
     waitpid(p1, NULL, 0);
     waitpid(p2, NULL, 0);
     waitpid(p3, NULL, 0);
 
-    // Destrói os mapeamentos do SO
-    munmap(shm, sizeof(SharedMem));
-    shm_unlink(SHM_NAME);
+    /* O processo pai destroi a lista que sobrou (primos + cabeca + sentinela). */
+    unsigned int p = mem->cabeca;
+    while (p != FIM_DA_LISTA) {
+        unsigned int seguinte = mem->buffer_nos[p].prox;
+        desaloca_no(mem, p);
+        p = seguinte;
+    }
+
+    munmap(ptr, sizeof(MemCompartilhada));
+    shm_unlink(SHM_NOME);
 
     return 0;
 }
