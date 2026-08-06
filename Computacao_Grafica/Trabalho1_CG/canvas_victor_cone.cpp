@@ -351,7 +351,7 @@ void drawPreview(void)
       {
          float dx = (float)(curX - tempX), dy = (float)(curY - tempY);
          float h = sqrt(dx * dx + dy * dy);
-         Cone temp(tempX, tempY, curX, curY, 0.40 * h);
+         Cone temp(tempX, tempY, curX, curY, 0.01);
          temp.drawCone();
       }
       else // Etapa 2: altura+direcao fixas; distancia temp2->mouse e o raio.
