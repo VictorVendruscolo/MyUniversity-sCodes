@@ -71,10 +71,11 @@ typedef struct {
 
 /* ------------------------- acesso a memoria compartilhada ------------------ */
 
-/* Mapeia a regiao compartilhada no espaco de enderecamento do processo.
- * 'ptr' e o ponteiro inicial devolvido pelo mmap (endereco distinto em cada
- * processo); 'mem' e o ponteiro de trabalho, com o registro sobreposto. */
-static volatile MemCompartilhada *mapeia_memoria(int criar)
+/* Mapeia a regiao compartilhada no espaco de enderecamento do processo e
+ * devolve o ponteiro inicial (void *) da regiao. Cada processo guarda esse
+ * ponteiro inicial em 'ptr' e trabalha com um segundo ponteiro, 'mem', que
+ * sobrepoe o registro a mesma regiao. */
+static void *mapeia_memoria(int criar)
 {
     int   shm_fd;
     void *ptr;
@@ -98,7 +99,7 @@ static volatile MemCompartilhada *mapeia_memoria(int criar)
     }
     close(shm_fd);
 
-    return (volatile MemCompartilhada *) ptr;
+    return ptr;
 }
 
 /* ------------------------------ alocador ---------------------------------- */
@@ -151,7 +152,8 @@ static int eh_primo(unsigned int n)
  * E essa espera de um no que dispensa qualquer trava entre as etapas. */
 static void processo_remove_pares(void)
 {
-    volatile MemCompartilhada *mem = mapeia_memoria(0);
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
     unsigned int ant        = mem->cabeca; /* ultimo no mantido por este processo */
     unsigned int a_liberar  = NENHUM;      /* no mantido aguardando liberacao     */
@@ -181,14 +183,15 @@ static void processo_remove_pares(void)
         }
     }
 
-    munmap((void *) mem, sizeof(MemCompartilhada));
+    munmap(ptr, sizeof(MemCompartilhada));
     exit(0);
 }
 
 /* Filho 2: percorre L e remove os numeros que nao sao primos. */
 static void processo_remove_nao_primos(void)
 {
-    volatile MemCompartilhada *mem = mapeia_memoria(0);
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
     unsigned int ant        = mem->cabeca;
     unsigned int a_liberar  = NENHUM;
@@ -218,14 +221,15 @@ static void processo_remove_nao_primos(void)
         }
     }
 
-    munmap((void *) mem, sizeof(MemCompartilhada));
+    munmap(ptr, sizeof(MemCompartilhada));
     exit(0);
 }
 
 /* Filho 3: imprime os numeros primos armazenados em L. */
 static void processo_imprime_primos(void)
 {
-    volatile MemCompartilhada *mem = mapeia_memoria(0);
+    void *ptr = mapeia_memoria(0);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
     unsigned int ant        = mem->cabeca;
     unsigned int consumidos = 0;
@@ -252,7 +256,7 @@ static void processo_imprime_primos(void)
     }
 
     fclose(saida);
-    munmap((void *) mem, sizeof(MemCompartilhada));
+    munmap(ptr, sizeof(MemCompartilhada));
     exit(0);
 }
 
@@ -262,10 +266,11 @@ int main(void)
 {
     shm_unlink(SHM_NOME); /* limpeza preventiva de execucoes anteriores */
 
-    volatile MemCompartilhada *mem = mapeia_memoria(1);
+    void *ptr = mapeia_memoria(1);                 /* ponteiro inicial da regiao */
+    volatile MemCompartilhada *mem = ptr;          /* ponteiro de trabalho       */
 
     /* Mapa de bits e contadoras criados e inicializados pelo processo pai. */
-    memset((void *) mem, 0, sizeof(MemCompartilhada));
+    memset(ptr, 0, sizeof(MemCompartilhada));
 
     /* Lista L com no cabeca: simplifica a remocao do primeiro elemento. */
     mem->cabeca = aloca_no(mem);
@@ -332,7 +337,7 @@ int main(void)
         p = seguinte;
     }
 
-    munmap((void *) mem, sizeof(MemCompartilhada));
+    munmap(ptr, sizeof(MemCompartilhada));
     shm_unlink(SHM_NOME);
 
     return 0;

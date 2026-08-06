@@ -67,7 +67,19 @@ regiao compartilhada num endereco virtual diferente.
 
 O mapa usa uma posicao por no (0 = livre, 1 = ocupado) de proposito: com bits
 empacotados, liberar um no exigiria ler-alterar-gravar um byte compartilhado
-com outros 7 nos, o que so seria seguro com instrucao atomica.
+com outros 7 nos - dois escritores (o pai gravando 1 ao alocar e o filho
+gravando 0 ao remover) sobre o mesmo byte, o que so seria seguro com instrucao
+atomica. Como o enunciado exige que cada adicional desaloque os nos que ele
+mesmo remove, o mapa tem mesmo mais de um escritor; com uma posicao por no,
+cada posicao passa a ter um unico escritor de cada vez e a escrita e indivisivel
+por si so.
+
+O buffer tem 1000050 nos (8,6 MB). Ele e dimensionado pelo pior caso, aquele em
+que nenhum numero e removido, porque os primos permanecem em `L` ate o fim - a
+etapa 3 imprime, nao remove. Um buffer menor que a quantidade de sobreviventes
+travaria o programa: a principal ficaria esperando um no livre que nunca seria
+devolvido. Nos ja removidos sao reaproveitados (a varredura do alocador e
+circular e espera de forma ocupada quando o buffer esta cheio).
 
 ## Testes
 
