@@ -274,12 +274,28 @@ public:
    void rotateZ(float a) { angleZ += a; }         // Acumula rotacao no eixo Z.
    void changeScale(float factor) { scale *= factor; } // Multiplica a escala atual.
    void translate(int dx, int dy) { x1 += dx; y1 += dy; x2 += dx; y2 += dy; } // Move os 2 pontos.
+
 private:
    int x1, y1, x2, y2;              // (x1,y1)=vertice/apice; (x2,y2)=2o ponto (altura+direcao).
    float baseRadius;                // [T1] Raio da base, escolhido pelo 3o clique.
    float angleX, angleY, angleZ;    // Angulos de rotacao (transformacao geometrica).
    float scale;                     // Fator de escala uniforme (transformacao geometrica).
 };
+
+   float FuncRaioOrtogonal(float mx, float my){
+      float ax = (float)(temp2X - tempX);
+      float ay = (float) (temp2Y - tempY);
+      float h = sqrt(ax * ax + ay * ay);
+      if (h == 0.0) return 0.0;
+
+      float ux = ax / h; 
+      float uy = ay / h; 
+      float vx = (float)(mx - tempX);
+      float vy = (float)(my - tempY);
+
+      return fabs(ux *vy - uy * vx);
+   
+   }
 
 // [T1-NOVO] Funcao que desenha um cone.
 void Cone::drawCone()
@@ -481,14 +497,13 @@ void drawPreview(void)
          // Etapa 1: apice = 1o ponto; o mouse define altura+direcao. Raio provisorio (0.4*altura).
          float dx = (float)(curX - tempX), dy = (float)(curY - tempY);
          float h = sqrt(dx * dx + dy * dy);
-         Cone temp(tempX, tempY, curX, curY, 0.40 * h);
+         Cone temp(tempX, tempY, curX, curY, 0.01); 
          temp.drawCone();
       }
       else // pointCount == 2
       {
          // Etapa 2: altura+direcao ja fixas (temp -> temp2); a distancia temp2 -> mouse e o raio.
-         float dx = (float)(curX - temp2X), dy = (float)(curY - temp2Y);
-         float r = sqrt(dx * dx + dy * dy);
+         float r = FuncRaioOrtogonal(curX, curY);
          Cone temp(tempX, tempY, temp2X, temp2Y, r);
          temp.drawCone();
       }
@@ -633,8 +648,7 @@ void mouseControl(int button, int state, int x, int y)
 	        else                         // pointCount == 2
 			{
                // 3o clique: a distancia do 2o ponto ao mouse e o raio da base; salva o cone.
-               float dx = (float)(x - temp2X), dy = (float)(y - temp2Y);
-               float r = sqrt(dx * dx + dy * dy);
+               float r = FuncRaioOrtogonal(x, y);
                cones.push_back( Cone(tempX, tempY, temp2X, temp2Y, r) );
 		       pointCount = 0;
 			}
