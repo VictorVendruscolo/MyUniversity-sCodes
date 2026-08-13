@@ -1,5 +1,5 @@
 // canvas.cpp
-//
+// g++ canvas.cpp -o canvas -lglut -lGL -lGLU -lm
 // Trabalho 1 (PP2) de Computacao Grafica - UEMS.
 // Aluno: Victor Rech Vendruscolo (numero 12 da lista -> exercicio 12: cone).
 // Programa base: canvas.cpp de Sumanta Guha (Chapter3/Canvas).

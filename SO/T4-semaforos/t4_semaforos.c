@@ -1,5 +1,5 @@
 /* Trabalho 4 - Sistemas Operacionais - Victor Rech Vendruscolo
- * Multithread com sincronizacao por semaforos de contagem nomeados. */
+   Multithread com sincronizacao por semaforos de contagem nomeados. */
 
 #include <stdio.h>
 #include <stdlib.h>

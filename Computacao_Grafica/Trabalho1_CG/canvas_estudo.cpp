@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////
 // canvas.cpp  -  TRABALHO 1 (PP2) de Computacao Grafica - UEMS
-//
+// g++ canvas.cpp -o canvas -lglut -lGL -lGLU -lm
 // Aluno: Victor Rech Vendruscolo (numero 12 da lista => exercicio 12).
 // Programa base: canvas.cpp de Sumanta Guha (Chapter3/Canvas), obrigatorio pelo enunciado.
 //
