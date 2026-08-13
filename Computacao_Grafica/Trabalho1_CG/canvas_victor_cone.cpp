@@ -347,7 +347,7 @@ void drawPreview(void)
    }
    else if (primitive == CONE)
    {
-      if (pointCount == 1) // Etapa 1: define altura+direcao; raio provisorio (0.4*altura).
+      if (pointCount == 1) // Etapa 1: define altura+direcao; raio provisorio.
       {
          float dx = (float)(curX - tempX), dy = (float)(curY - tempY);
          float h = sqrt(dx * dx + dy * dy);
@@ -365,7 +365,7 @@ void drawPreview(void)
 
    glPointSize(pointSize); // Marca o primeiro ponto.
    glBegin(GL_POINTS);
-      glVertex3f(tempX, tempY, 0.0);
+      glVertex3f(tempX, tempY, 0.0);   
    glEnd();
 }
 
@@ -489,7 +489,7 @@ void mouseControl(int button, int state, int x, int y)
 	        else // 3o clique: distancia temp2->mouse = raio; salva.
 			{
                float dx = (float)(x - temp2X), dy = (float)(y - temp2Y);
-               float r = sqrt(dx * dx + dy * dy);
+               float r = sqrt(dx * dx + dy * dy);                             //calcula o raio da base do cone
                cones.push_back( Cone(tempX, tempY, temp2X, temp2Y, r) );
 		       pointCount = 0;
 			}
