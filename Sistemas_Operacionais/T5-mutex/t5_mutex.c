@@ -1,11 +1,11 @@
-/* Trabalho 5 - Sistemas Operacionais - Victor Rech Vendruscolo
- * Multithread com sincronizacao por mutex, um por no da lista L. */
+// Trabalho 5 - Sistemas Operacionais - Victor Rech Vendruscolo
+// Multithread com sincronizacao por mutex, um por no da lista L. 
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
-#define SENTINELA 0xFFFFFFFFu /* valor do ultimo no: marca o fim da entrada */
+#define SENTINELA 0xFFFFFFFFu // valor do ultimo no: marca o fim da entrada 
 
 typedef struct No {
     unsigned int     valor;
@@ -15,9 +15,7 @@ typedef struct No {
 
 static No *cabeca;
 
-/* Todo no nasce travado por quem o cria; so e destravado quando seu 'prox'
- * fica definitivo (lock coupling: nunca se trava 'atual' sem ja segurar
- * 'ant', e nenhuma thread consegue travar um no antes disso acontecer). */
+// Todo no nasce travado por quem o cria; so e destravado quando seu 'prox' fica definitivo
 static No *novo_no(unsigned int valor)
 {
     No *n = malloc(sizeof(No));
@@ -43,7 +41,7 @@ static int eh_primo(unsigned int n)
     return 1;
 }
 
-/* Remove de L os pares maiores que 2. */
+// Remove de L os pares maiores que 2. 
 static void *remove_pares(void *arg __attribute__((unused)))
 {
     No *ant = cabeca;
@@ -74,7 +72,7 @@ static void *remove_pares(void *arg __attribute__((unused)))
     pthread_exit(NULL);
 }
 
-/* Remove de L os nao primos. */
+// Remove de L os nao primos.
 static void *remove_nao_primos(void *arg __attribute__((unused)))
 {
     No *ant = cabeca;
@@ -105,7 +103,7 @@ static void *remove_nao_primos(void *arg __attribute__((unused)))
     pthread_exit(NULL);
 }
 
-/* Imprime os primos armazenados em L. */
+// Imprime os primos armazenados em L.
 static void *imprime_primos(void *arg __attribute__((unused)))
 {
     No *ant = cabeca;
@@ -162,7 +160,7 @@ int main(void)
     while (fscanf(entrada, "%u", &valor) == 1) {
         No *novo = novo_no(valor);
         fim->prox = novo;
-        pthread_mutex_unlock(&fim->mutex); /* fim->prox agora e definitivo */
+        pthread_mutex_unlock(&fim->mutex); // fim->prox agora e definitivo 
         fim = novo;
     }
     fclose(entrada);
@@ -170,7 +168,7 @@ int main(void)
     No *sentinela = novo_no(SENTINELA);
     fim->prox = sentinela;
     pthread_mutex_unlock(&fim->mutex);
-    pthread_mutex_unlock(&sentinela->mutex); /* sentinela nunca tera prox */
+    pthread_mutex_unlock(&sentinela->mutex); // sentinela nunca tera prox
 
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
