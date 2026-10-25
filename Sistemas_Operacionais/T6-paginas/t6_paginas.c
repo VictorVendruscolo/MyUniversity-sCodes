@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 // Le todos os enderecos do arquivo; o vetor inteiro e necessario porque o OPT olha o futuro
-static int *ler_enderecos(char *nome, int *n)
+int *ler_enderecos(char *nome, int *n)
 {
     FILE *f = fopen(nome, "r");
     if (f == NULL) {
@@ -13,22 +13,21 @@ static int *ler_enderecos(char *nome, int *n)
         exit(1);
     }
 
-    int cap = 64, x;
-    int *end = malloc(cap * sizeof(int));
+    // primeira leitura conta os enderecos, a segunda guarda no vetor
+    int x;
     *n = 0;
-    while (fscanf(f, "%d", &x) == 1) {
-        if (*n == cap) {
-            cap *= 2;
-            end = realloc(end, cap * sizeof(int));
-        }
-        end[(*n)++] = x;
-    }
+    while (fscanf(f, "%d", &x) == 1) (*n)++;
+    rewind(f);
+
+    int *end = malloc(*n * sizeof(int));
+    int i = 0;
+    while (fscanf(f, "%d", &x) == 1) end[i++] = x;
     fclose(f);
     return end;
 }
 
 // Devolve o indice do quadro que contem a pagina, ou -1
-static int buscar(int *quadros, int ocupados, int pagina)
+int buscar(int *quadros, int ocupados, int pagina)
 {
     for (int k = 0; k < ocupados; k++) {
         if (quadros[k] == pagina) return k;
@@ -37,7 +36,7 @@ static int buscar(int *quadros, int ocupados, int pagina)
 }
 
 // Fila FIFO (vetor circular): substitui a pagina da cabeca da fila e a nova entra na cauda
-static int fifo(int *end, int n, int tam_pag, int q, FILE *saida)
+int fifo(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
     int ocupados = 0, cabeca = 0, erros = 0;
@@ -60,7 +59,7 @@ static int fifo(int *end, int n, int tam_pag, int q, FILE *saida)
 }
 
 // Substitui a pagina que nao sera usada pelo periodo de tempo mais longo
-static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
+int opt(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
     int ocupados = 0, erros = 0;
@@ -92,8 +91,8 @@ static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
 }
 
 // LRU com contadores: a cada referencia, o relogio (i) e copiado para o campo hora-de-uso
-// da pagina; substitui a pagina com o menor valor de hora
-static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
+// do quadro da pagina; substitui a pagina com o menor valor de hora
+int lru(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
     int *hora_uso = malloc(q * sizeof(int));
@@ -124,7 +123,7 @@ static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
 }
 
 // Percentual truncado em 2 casas (12,195 -> 12,19), como no exemplo do enunciado
-static void imprimir(char *nome, int erros, int n)
+void imprimir(char *nome, int erros, int n)
 {
     int p = erros * 10000 / n;
     printf("%s: %d erros de pagina, taxa de %d,%02d%%\n", nome, erros, p / 100, p % 100);
