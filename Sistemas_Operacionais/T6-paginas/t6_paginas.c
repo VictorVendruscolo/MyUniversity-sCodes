@@ -9,7 +9,7 @@ static int *ler_enderecos(char *nome, int *n)
 {
     FILE *f = fopen(nome, "r");
     if (f == NULL) {
-        perror(nome);
+        printf("erro ao abrir %s\n", nome);
         exit(1);
     }
 
@@ -36,11 +36,11 @@ static int buscar(int *quadros, int ocupados, int pagina)
     return -1;
 }
 
-// 'prox' anda em circulo: aponta sempre para a pagina que entrou ha mais tempo
+// Fila FIFO (vetor circular): substitui a pagina da cabeca da fila e a nova entra na cauda
 static int fifo(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
-    int ocupados = 0, prox = 0, erros = 0;
+    int ocupados = 0, cabeca = 0, erros = 0;
 
     for (int i = 0; i < n; i++) {
         int pagina = end[i] / tam_pag;
@@ -48,18 +48,18 @@ static int fifo(int *end, int n, int tam_pag, int q, FILE *saida)
 
         erros++;
         fprintf(saida, "Erro de pagina no endereco %d, pagina %d\n", end[i], pagina);
-        if (ocupados < q) {
+        if (ocupados < q) { // ha quadro livre: usa ele
             quadros[ocupados++] = pagina;
         } else {
-            quadros[prox] = pagina;
-            prox = (prox + 1) % q;
+            quadros[cabeca] = pagina;
+            cabeca = (cabeca + 1) % q;
         }
     }
     free(quadros);
     return erros;
 }
 
-// Sai a pagina que demora mais para ser usada de novo (ou que nunca mais e usada)
+// Substitui a pagina que nao sera usada pelo periodo de tempo mais longo
 static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
@@ -71,7 +71,7 @@ static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
 
         erros++;
         fprintf(saida, "Erro de pagina no endereco %d, pagina %d\n", end[i], pagina);
-        if (ocupados < q) {
+        if (ocupados < q) { // ha quadro livre: usa ele
             quadros[ocupados++] = pagina;
             continue;
         }
@@ -91,11 +91,12 @@ static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
     return erros;
 }
 
-// Sai a pagina com o menor 'ultimo_uso', atualizado em todo acesso, com ou sem erro
+// LRU com contadores: a cada referencia, 'hora_uso' do quadro recebe o relogio (i);
+// substitui a pagina com o menor valor de tempo
 static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
-    int *ultimo_uso = malloc(q * sizeof(int));
+    int *hora_uso = malloc(q * sizeof(int));
     int ocupados = 0, erros = 0;
 
     for (int i = 0; i < n; i++) {
@@ -105,20 +106,20 @@ static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
         if (k == -1) {
             erros++;
             fprintf(saida, "Erro de pagina no endereco %d, pagina %d\n", end[i], pagina);
-            if (ocupados < q) {
+            if (ocupados < q) { // ha quadro livre: usa ele
                 k = ocupados++;
             } else {
                 k = 0;
                 for (int m = 1; m < q; m++) {
-                    if (ultimo_uso[m] < ultimo_uso[k]) k = m;
+                    if (hora_uso[m] < hora_uso[k]) k = m;
                 }
             }
             quadros[k] = pagina;
         }
-        ultimo_uso[k] = i;
+        hora_uso[k] = i;
     }
     free(quadros);
-    free(ultimo_uso);
+    free(hora_uso);
     return erros;
 }
 
@@ -132,7 +133,7 @@ static void imprimir(char *nome, int erros, int n)
 int main(int argc, char *argv[])
 {
     if (argc != 4) {
-        fprintf(stderr, "Uso: %s <tam_pagina> <tam_memoria> <arquivo>\n", argv[0]);
+        printf("uso: %s tam_pagina tam_memoria arquivo\n", argv[0]);
         return 1;
     }
 
@@ -140,7 +141,7 @@ int main(int argc, char *argv[])
     int tam_mem = atoi(argv[2]);
     int q = tam_mem / tam_pag; // quadros inteiros; o que sobra da memoria nao forma quadro
     if (q < 1) {
-        fprintf(stderr, "A memoria precisa caber pelo menos uma pagina\n");
+        printf("memoria menor que uma pagina\n");
         return 1;
     }
 
@@ -149,7 +150,7 @@ int main(int argc, char *argv[])
 
     FILE *saida = fopen("erros.out", "w");
     if (saida == NULL) {
-        perror("erros.out");
+        printf("erro ao criar erros.out\n");
         return 1;
     }
 
