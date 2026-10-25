@@ -91,8 +91,8 @@ static int opt(int *end, int n, int tam_pag, int q, FILE *saida)
     return erros;
 }
 
-// LRU com contadores: a cada referencia, 'hora_uso' do quadro recebe o relogio (i);
-// substitui a pagina com o menor valor de tempo
+// LRU com contadores: a cada referencia, o relogio (i) e copiado para o campo hora-de-uso
+// da pagina; substitui a pagina com o menor valor de hora
 static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
 {
     int *quadros = malloc(q * sizeof(int));
@@ -127,7 +127,7 @@ static int lru(int *end, int n, int tam_pag, int q, FILE *saida)
 static void imprimir(char *nome, int erros, int n)
 {
     int p = erros * 10000 / n;
-    printf("%s: %d erros de pagina (%d,%02d%%)\n", nome, erros, p / 100, p % 100);
+    printf("%s: %d erros de pagina, taxa de %d,%02d%%\n", nome, erros, p / 100, p % 100);
 }
 
 int main(int argc, char *argv[])
