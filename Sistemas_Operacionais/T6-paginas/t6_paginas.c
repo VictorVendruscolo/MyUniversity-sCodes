@@ -146,6 +146,10 @@ int main(int argc, char *argv[])
 
     int n;
     int *end = ler_enderecos(argv[3], &n);
+    if (n == 0) {
+        printf("arquivo sem enderecos\n");
+        return 1;
+    }
 
     FILE *saida = fopen("erros.out", "w");
     if (saida == NULL) {
