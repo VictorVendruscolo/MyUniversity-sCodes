@@ -1,175 +1,331 @@
 #TRABALHO DE LM 2026 - TORRE DE HANOI
 #RGM: 51520 / (RGM da dupla)
 #
-#ANTES DE RODAR, NO MARS:
-#  Settings -> desmarcar "Permit extended (pseudo) instructions and formats"
-#  Tools -> Bitmap Display:
-#    Unit Width in Pixels = 8       Unit Height in Pixels = 8
-#    Display Width in Pixels = 512  Display Height in Pixels = 256
-#    Base address for display = 0x10008000 ($gp)
-#    clicar em "Connect to MIPS"
-#  Para avancar cada passo: clicar na aba Run I/O e apertar ESPACO
+#COMO RODAR NO MARS
+#  1. Tools > Bitmap Display: Unit Width = 8 e Unit Height = 8
+#     (o resto fica no padrao: 512 x 256, base 0x10010000) e "Connect to MIPS"
+#  2. Assemble e Run; na aba Run I/O digitar n e apertar ESPACO a cada passo
+#  Sem pseudoinstrucoes: roda com Settings > "Permit extended (pseudo)
+#  instructions and formats" desmarcado.
 #
-#MEMORIA:
-#  tela  -> 0x10008000 // 64 colunas x 32 linhas, 1 word por quadradinho
-#           tela[y*64 + x] fica em 0x10008000 + (y*64 + x)*4
-#           endereco: lui $reg,0x1000 / ori $reg,$reg,0x8000
-#  torre -> 0x10010000 // torre[3][9]: a torre t comeca na posicao t*9
-#           torre[t][i] fica em 0x10010000 + (t*9 + i)*4
-#           endereco: lui $reg,0x1001
-#  topo  -> 0x1001006C // topo[3]: quantos discos tem em cada torre
-#           topo[t] fica em 0x1001006C + t*4
-#           endereco: lui $reg,0x1001 / ori $reg,$reg,0x006C
+#MEMORIA (.data)
+#  0x10010000 tela[64*32] -> tela[y*64 + x]
+#  0x10012000 torre[3][9] -> torre[t][i] na posicao t*9 + i
+#  0x1001206C topo[3]     -> quantos discos tem em cada torre
+#  0x10012078 textos
 #
-#CORES (0x00RRGGBB):
-#  PRETO    = 0x00000000 -> $zero
-#  BRANCO   = 0x00FFFFFF -> lui $reg,0x00FF / ori $reg,$reg,0xFFFF
-#  VERMELHO = 0x00FF0000 -> lui $reg,0x00FF
+#CONSTANTES
+#  9       maximo de discos
+#  64      largura da tela; 2048 = 64*32 quadradinhos
+#  10, 21  centro da 1a torre e distancia entre as torres
+#  31      linha da base; 11 a 30 = haste
+#  29      linha do 1o disco; cada disco sobe 2 linhas
 #
-#DESENHO:
-#  a torre t tem centro na coluna 10 + 21*t (10, 31, 52)
-#  base de cada torre: linha 31, da coluna centro-9 ate centro+9
-#  disco de tamanho d na altura i: linha 29 - 2*i, da coluna centro-d ate centro+d
+#CORES (0x00RRGGBB)
+#  base 0x00FFFFFF, haste 0x00808080
+#  disco 0x00FF0000 + tamanho*0x1C00 (degrade do vermelho ao amarelo)
 
 .data
-.space 108 #int torre[3][9] // 0x10010000 (3*9*4 = 108 bytes)
-.space 12  #int topo[3]     // 0x1001006C (108 = 0x6C)
+	.space 8192 #int tela[2048]  // 0x10010000
+	.space 108  #int torre[3][9] // 0x10012000
+	.space 12   #int topo[3]     // 0x1001206C
+	.asciiz "Quantos discos (1 a 9)? "        # 0x10012078
+	.asciiz "Aperte ESPACO para cada passo\n" # 0x10012091
+	.asciiz "\nFim!\n"                        # 0x100120B0
 
 .text
-#int n, i; //n->$s0, i->$s1
+	#int n, i; //n->$s0, i->$s1
 
-#leia n
+	#do{ imprime "Quantos discos (1 a 9)? "; leia n; } while(n<1 || n>9);
 LEIA_N:
-#COMPLETAR (syscall 5)
+	addi $v0,$zero,4
+	lui $a0,0x1001
+	ori $a0,$a0,0x2078
+	syscall
+	addi $v0,$zero,5
+	syscall
+	add $s0,$zero,$v0
+	slti $t0,$s0,1
+	bne $t0,$zero,LEIA_N
+	slti $t0,$s0,10
+	beq $t0,$zero,LEIA_N
 
-#if(n<1 || n>9) leia de novo //9 e o maximo que cabe na largura da tela
-#COMPLETAR (slti + bne/beq para LEIA_N)
+	#imprime "Aperte ESPACO para cada passo"
+	addi $v0,$zero,4
+	lui $a0,0x1001
+	ori $a0,$a0,0x2091
+	syscall
 
-#for(i=0; i<n; ++i)
-#COMPLETAR: i = 0
+	#for(i=0; i<n; ++i) torre[0][i] = n - i;
+	add $s1,$zero,$zero
 FOR_INICIA:
-#COMPLETAR: if(!(i<n)) sai do for (slt + beq para FIM_FOR_INICIA)
-#	torre[0][i] = n - i; //maior disco embaixo
-#COMPLETAR
-#COMPLETAR: ++i e volta (j FOR_INICIA)
+	slt $t0,$s1,$s0
+	beq $t0,$zero,FIM_FOR_INICIA
+		sub $t2,$s0,$s1
+		addi $t0,$zero,4
+		mul $t0,$s1,$t0
+		lui $t1,0x1001
+		ori $t1,$t1,0x2000
+		add $t0,$t0,$t1
+		sw $t2,0($t0)
+		addi $s1,$s1,1
+		j FOR_INICIA
 FIM_FOR_INICIA:
 
-#topo[0] = n; topo[1] = 0; topo[2] = 0;
-#COMPLETAR
+	#topo[0] = n; topo[1] = 0; topo[2] = 0;
+	lui $t1,0x1001
+	ori $t1,$t1,0x206C
+	sw $s0,0($t1)
+	sw $zero,4($t1)
+	sw $zero,8($t1)
 
-#desenha(); //mostra o estado inicial
-#COMPLETAR
+	#desenha();
+	jal PROC_DESENHA
 
-#hanoi(n, 0, 2, 1); //tudo da torre 0 para a torre 2, usando a 1 como auxiliar
-#COMPLETAR
+	#hanoi(n, 0, 2, 1);
+	add $a0,$zero,$s0
+	addi $a1,$zero,0
+	addi $a2,$zero,2
+	addi $a3,$zero,1
+	jal PROC_HANOI
 
-#return 0;
-addi $v0,$zero,10
-syscall
+	#imprime "Fim!"
+	addi $v0,$zero,4
+	lui $a0,0x1001
+	ori $a0,$a0,0x20B0
+	syscall
+
+	#return 0;
+	addi $v0,$zero,10
+	syscall
 
 
 PROC_HANOI:
 #void hanoi(int n, int orig, int dest, int aux){ //n->$a0, orig->$a1, dest->$a2, aux->$a3
-#if(n==0)
-#COMPLETAR (bne para PROC_HANOI_FIM_IF)
-# return;
-jr $ra
+	#if(n==0) return;
+	bne $a0,$zero,PROC_HANOI_FIM_IF
+	jr $ra
 PROC_HANOI_FIM_IF:
-#pilha: 4($sp)=$ra, 8($sp)=n, 12($sp)=orig, 16($sp)=dest, 20($sp)=aux
-#COMPLETAR: reservar 20 bytes e salvar $ra, $a0, $a1, $a2, $a3
+	addi $sp,$sp,-20
+	sw $ra,4($sp)
+	sw $a0,8($sp)
+	sw $a1,12($sp)
+	sw $a2,16($sp)
+	sw $a3,20($sp)
 
-#hanoi(n-1, orig, aux, dest);
-#COMPLETAR
+	#hanoi(n-1, orig, aux, dest);
+	addi $a0,$a0,-1
+	lw $a2,20($sp)
+	lw $a3,16($sp)
+	jal PROC_HANOI
 
-#mover(orig, dest); //a chamada acima mudou os $a: recarregar da pilha
-#COMPLETAR
+	#mover(orig, dest);
+	lw $a0,12($sp)
+	lw $a1,16($sp)
+	jal PROC_MOVER
 
-#hanoi(n-1, aux, dest, orig);
-#COMPLETAR
+	#hanoi(n-1, aux, dest, orig);
+	lw $a0,8($sp)
+	addi $a0,$a0,-1
+	lw $a1,20($sp)
+	lw $a2,16($sp)
+	lw $a3,12($sp)
+	jal PROC_HANOI
 
-#COMPLETAR: recuperar $ra e liberar os 20 bytes
-jr $ra
+	lw $ra,4($sp)
+	addi $sp,$sp,20
+	jr $ra
 #}
 
 
 PROC_MOVER:
 #void mover(int orig, int dest){ //orig->$a0, dest->$a1
-#pilha: 4($sp)=$ra //mover chama desenha, entao precisa guardar o $ra
-#COMPLETAR: reservar 4 bytes e salvar $ra
+	addi $sp,$sp,-4
+	sw $ra,4($sp)
 
-#do{ c = leia char; } while(c != ' '); //espera o ESPACO (' ' = 32)
+	#do{ c = leia char; } while(c != ' ');
 PROC_MOVER_ESPERA:
-#COMPLETAR (syscall 12 + bne para PROC_MOVER_ESPERA)
+	addi $v0,$zero,12
+	syscall
+	addi $t0,$zero,32
+	bne $v0,$t0,PROC_MOVER_ESPERA
 
-#topo[orig] = topo[orig] - 1;
-#COMPLETAR
+	#topo[orig] = topo[orig] - 1;
+	lui $t1,0x1001
+	ori $t1,$t1,0x206C
+	addi $t0,$zero,4
+	mul $t2,$a0,$t0
+	add $t2,$t2,$t1
+	lw $t3,0($t2)
+	addi $t3,$t3,-1
+	sw $t3,0($t2)
 
-#disco = torre[orig][topo[orig]];
-#COMPLETAR
+	#disco = torre[orig][topo[orig]]; //disco->$t6
+	addi $t0,$zero,9
+	mul $t4,$a0,$t0
+	add $t4,$t4,$t3
+	addi $t0,$zero,4
+	mul $t4,$t4,$t0
+	lui $t5,0x1001
+	ori $t5,$t5,0x2000
+	add $t4,$t4,$t5
+	lw $t6,0($t4)
 
-#torre[dest][topo[dest]] = disco;
-#COMPLETAR
+	#torre[dest][topo[dest]] = disco;
+	addi $t0,$zero,4
+	mul $t2,$a1,$t0
+	add $t2,$t2,$t1
+	lw $t3,0($t2)
+	addi $t0,$zero,9
+	mul $t4,$a1,$t0
+	add $t4,$t4,$t3
+	addi $t0,$zero,4
+	mul $t4,$t4,$t0
+	add $t4,$t4,$t5
+	sw $t6,0($t4)
 
-#topo[dest] = topo[dest] + 1;
-#COMPLETAR
+	#topo[dest] = topo[dest] + 1;
+	addi $t3,$t3,1
+	sw $t3,0($t2)
 
-#desenha();
-#COMPLETAR
+	#desenha();
+	jal PROC_DESENHA
 
-#COMPLETAR: recuperar $ra e liberar os 4 bytes
-jr $ra
+	lw $ra,4($sp)
+	addi $sp,$sp,4
+	jr $ra
 #}
 
 
 PROC_DESENHA:
-#void desenha(){
-#int t, i, centro; //t->$s0, i->$s1, centro->$s2
-#pilha: 4($sp)=$ra, 8($sp)=$s0, 12($sp)=$s1, 16($sp)=$s2 //o main tambem usa $s0 e $s1
-#COMPLETAR: reservar 16 bytes e salvar
+#void desenha(){ //t->$s0, i->$s1, centro->$s2
+	addi $sp,$sp,-16
+	sw $ra,4($sp)
+	sw $s0,8($sp)
+	sw $s1,12($sp)
+	sw $s2,16($sp)
 
-#for(i=0; i<2048; ++i) tela[i] = PRETO; //limpa a tela (64*32 = 2048)
-#COMPLETAR: i = 0 e endereco da tela
+	#for(i=0; i<2048; ++i) tela[i] = PRETO;
+	lui $t1,0x1001
+	add $t2,$zero,$zero
+	addi $t3,$zero,2048
 PROC_DESENHA_FOR_LIMPA:
-#COMPLETAR
+	slt $t0,$t2,$t3
+	beq $t0,$zero,PROC_DESENHA_FIM_FOR_LIMPA
+		sw $zero,0($t1)
+		addi $t1,$t1,4
+		addi $t2,$t2,1
+		j PROC_DESENHA_FOR_LIMPA
 PROC_DESENHA_FIM_FOR_LIMPA:
 
-#for(t=0; t<3; ++t){
-#COMPLETAR: t = 0
+	#for(t=0; t<3; ++t){
+	add $s0,$zero,$zero
 PROC_DESENHA_FOR_T:
-#COMPLETAR: if(!(t<3)) sai (slti + beq para PROC_DESENHA_FIM_FOR_T)
-#	centro = 10 + 21*t;
-#COMPLETAR
-#	linha(centro-9, centro+9, 31, BRANCO); //base da torre
-#COMPLETAR
-#	for(i=0; i<topo[t]; ++i){
-#COMPLETAR: i = 0
+	slti $t0,$s0,3
+	beq $t0,$zero,PROC_DESENHA_FIM_FOR_T
+
+		#centro = 10 + 21*t;
+		addi $t0,$zero,21
+		mul $s2,$s0,$t0
+		addi $s2,$s2,10
+
+		#linha(centro-9, centro+9, 31, BRANCO); //base
+		addi $a0,$s2,-9
+		addi $a1,$s2,9
+		addi $a2,$zero,31
+		lui $a3,0x00FF
+		ori $a3,$a3,0xFFFF
+		jal PROC_LINHA
+
+		#for(i=11; i<31; ++i) linha(centro, centro, i, CINZA); //haste
+		addi $s1,$zero,11
+PROC_DESENHA_FOR_HASTE:
+		slti $t0,$s1,31
+		beq $t0,$zero,PROC_DESENHA_FIM_FOR_HASTE
+			add $a0,$zero,$s2
+			add $a1,$zero,$s2
+			add $a2,$zero,$s1
+			lui $a3,0x0080
+			ori $a3,$a3,0x8080
+			jal PROC_LINHA
+			addi $s1,$s1,1
+			j PROC_DESENHA_FOR_HASTE
+PROC_DESENHA_FIM_FOR_HASTE:
+
+		#for(i=0; i<topo[t]; ++i){
+		add $s1,$zero,$zero
 PROC_DESENHA_FOR_I:
-#COMPLETAR: if(!(i<topo[t])) sai (lw do topo[t], slt + beq para PROC_DESENHA_FIM_FOR_I)
-#		disco = torre[t][i];
-#COMPLETAR
-#		linha(centro-disco, centro+disco, 29-2*i, VERMELHO);
-#COMPLETAR
-#COMPLETAR: ++i e volta (j PROC_DESENHA_FOR_I)
+		lui $t1,0x1001
+		ori $t1,$t1,0x206C
+		addi $t0,$zero,4
+		mul $t0,$s0,$t0
+		add $t0,$t0,$t1
+		lw $t2,0($t0)
+		slt $t0,$s1,$t2
+		beq $t0,$zero,PROC_DESENHA_FIM_FOR_I
+
+			#disco = torre[t][i]; //disco->$t4
+			addi $t0,$zero,9
+			mul $t3,$s0,$t0
+			add $t3,$t3,$s1
+			addi $t0,$zero,4
+			mul $t3,$t3,$t0
+			lui $t1,0x1001
+			ori $t1,$t1,0x2000
+			add $t3,$t3,$t1
+			lw $t4,0($t3)
+
+			#linha(centro-disco, centro+disco, 29-2*i, VERMELHO + disco*0x1C00);
+			sub $a0,$s2,$t4
+			add $a1,$s2,$t4
+			add $t5,$s1,$s1
+			addi $t6,$zero,29
+			sub $a2,$t6,$t5
+			addi $t0,$zero,0x1C00
+			mul $t0,$t4,$t0
+			lui $a3,0x00FF
+			add $a3,$a3,$t0
+			jal PROC_LINHA
+
+			addi $s1,$s1,1
+			j PROC_DESENHA_FOR_I
 PROC_DESENHA_FIM_FOR_I:
-#	}
-#COMPLETAR: ++t e volta (j PROC_DESENHA_FOR_T)
+		#}
+
+		addi $s0,$s0,1
+		j PROC_DESENHA_FOR_T
 PROC_DESENHA_FIM_FOR_T:
-#}
-#COMPLETAR: recuperar $s2, $s1, $s0, $ra e liberar os 16 bytes
-jr $ra
+	#}
+
+	lw $s2,16($sp)
+	lw $s1,12($sp)
+	lw $s0,8($sp)
+	lw $ra,4($sp)
+	addi $sp,$sp,16
+	jr $ra
 #}
 
 
 PROC_LINHA:
 #void linha(int x0, int x1, int y, int cor){ //x0->$a0, x1->$a1, y->$a2, cor->$a3
-#procedimento folha: so usa $t, nao precisa de pilha
-#for(x=x0; x<=x1; ++x) //x->$t2
-#COMPLETAR: x = x0
+	#ptr = &tela[y*64 + x0]; //ptr->$t1
+	addi $t0,$zero,64
+	mul $t1,$a2,$t0
+	add $t1,$t1,$a0
+	addi $t0,$zero,4
+	mul $t1,$t1,$t0
+	lui $t0,0x1001
+	add $t1,$t1,$t0
+
+	#for(x=x0; x<=x1; ++x, ++ptr) *ptr = cor; //x->$t2
+	add $t2,$zero,$a0
 PROC_LINHA_FOR_X:
-#COMPLETAR: x<=x1 e o mesmo que !(x1<x) (slt + bne para PROC_LINHA_FIM_FOR_X)
-#	tela[y*64 + x] = cor;
-#COMPLETAR
-#COMPLETAR: ++x e volta (j PROC_LINHA_FOR_X)
+	slt $t0,$a1,$t2
+	bne $t0,$zero,PROC_LINHA_FIM_FOR_X
+		sw $a3,0($t1)
+		addi $t1,$t1,4
+		addi $t2,$t2,1
+		j PROC_LINHA_FOR_X
 PROC_LINHA_FIM_FOR_X:
-jr $ra
+	jr $ra
 #}
