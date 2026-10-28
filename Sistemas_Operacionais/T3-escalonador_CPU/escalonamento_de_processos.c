@@ -66,6 +66,7 @@ typedef struct {
 } Fila;
 
 typedef struct {
+    int tempo_inicio;             /* instante em que o diagrama de Gantt comeca */
     SegmentoGantt segmentos[MAX_SEGMENTOS];
     int n_segmentos;
     double utilizacao_cpu;
@@ -222,6 +223,7 @@ static void simular(Processo processos[MAX_PROCESSOS], int n, Algoritmo algo,
         if (processos[i].chegada < t) t = processos[i].chegada;
     }
     int tempo_inicio = t;
+    r->tempo_inicio = tempo_inicio;
 
     Fila prontos, fila_es;
     fila_inicializar(&prontos);
@@ -416,7 +418,7 @@ static void escrever_resultado(FILE *saida, Algoritmo algo, int quantum, int n,
     char buf_nome[32];
     const char *nome = nome_algoritmo(algo, quantum, buf_nome, sizeof(buf_nome));
 
-    fprintf(saida, "%s: %d[", nome, n);
+    fprintf(saida, "%s: %d[", nome, r->tempo_inicio);
     for (int i = 0; i < r->n_segmentos; i++) {
         if (r->segmentos[i].processo_id == -1) {
             fprintf(saida, "*** %d", r->segmentos[i].tempo_fim);
