@@ -33,13 +33,13 @@ Aluno: Victor Rech Vendruscolo (nº 12 na lista da turma).
 |---|---|
 | Resumo do conteúdo ensinado (comece por aqui) | `material-site/CONTEUDO.md` |
 | Enunciados PP4 e PP2 (modelo anterior) | `material-site/00-enunciados/` |
-| Modelagem: curvas, Bézier, superfícies | `material-site/01-modelagem-geometrica/` |
+| Modelagem: curvas, Bézier, superfícies (slides e lista) | `material-site/01-modelagem-geometrica/` |
 | OpenGL 1–3: GLUT, primitivas, projeção, objetos GLUT/GLU, transformações | `material-site/02-opengl/` |
 | Animação | `material-site/03-animacao/` |
 | Cor | `material-site/04-cor/` |
 | Visibilidade (back-face culling, z-buffer) | `material-site/05-visibilidade/` |
 | Iluminação (12 códigos, inclui `spots.c`) | `material-site/06-iluminacao/` |
-| Livro de experimentos + códigos do Guha (caps. 3, 10, 11, 12) | `material-site/referencias/sumanta-guha/` |
+| Livro de experimentos + códigos do Guha (caps. 3, 4, 10, 11, 12) | `material-site/referencias/sumanta-guha/` |
 | Códigos já feitos pelo Victor nas aulas | `Cap2/`, `Cap3/`, `Cap4/`, `Cap10/` e arquivos soltos (`Planet`, `Robot`, `SpaceTravel`, `Lampshade`, `LookAtDesk`) |
 | Trabalho anterior (PP2), modelo de documentação | `Trabalho1_CG/` (`EXPLICACAO.md`, `GUIA_DE_ESTUDO.md`) |
 
@@ -97,11 +97,7 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 
 ## Lacunas conhecidas
 
-- Os programas de animação do Guha cap. 4 (`rotatingHelix`, `ballAndTorus`, `throwBall`, `clown`, `floweringPlant`, `spaceTravel`)
-  não estão no repo. Eles estão no site da disciplina, em `SUMANTA GUHA/ExperimenterSource/Chapter4/`.
-  Há versões do Victor em `Cap4/` e na raiz.
 - As texturas BMP do Guha não existem no servidor da disciplina.
-- A lista de Modelagem Geométrica ficou só no site.
 
 ## Proposta aprovada
 

@@ -41,7 +41,7 @@ Ele mostra o estilo da professora: base de código obrigatória das aulas e aval
 
 | Data | Tema | Material |
 |---|---|---|
-| 09/04 – 23/04 | Modelagem: curvas, Bézier, superfícies | `01-modelagem-geometrica/` |
+| 09/04 – 23/04 | Modelagem: curvas, Bézier, superfícies | `01-modelagem-geometrica/`, lista `Lista Modelagem Geometrica.pdf` |
 | 04/05 | Introdução ao OpenGL e GLUT | `02-opengl/CG-OpenGL1.pdf` |
 | 07/05 | Projeção ortográfica, volume de visualização, recorte, cor | `CG-OpenGL1.pdf` + Experimenter cap. 2 |
 | 11/05 – 21/05 | Primitivas, objetos curvos, buffer de profundidade, perspectiva, hemisfério | `02-opengl/CG-OpenGL2.pdf`, lista `L11.pdf` |
@@ -164,6 +164,14 @@ Exemplos do Guha cap. 10: `cylinder.cpp`, `torus.cpp`, `helicalPipe.cpp`, `doubl
 - Modelo combinado sugerido em aula: `torpedo.cpp` (cilindro, hemisfério, discos e pás de Bézier).
   O exercício seguinte pedia um **avião** com superfícies de Bézier e quádricas.
 
+### 3.6 Lista de modelagem
+Arquivo: `01-modelagem-geometrica/listas/Lista Modelagem Geometrica.pdf`.
+Cobra representação paramétrica × não paramétrica e implícita × explícita.
+Cobra também o papel dos pontos de controle, dos polinômios de Bernstein e dos coeficientes binomiais.
+Pede o algoritmo de de Casteljau e uma curva de Bézier com 4 pontos dados.
+Pede gomos e cortes do hemisfério, o toro como superfície de revolução
+e superfícies de revolução com geratriz qualquer ou de Bézier.
+
 ---
 
 ## 4. Transformações, hierarquia e câmera
@@ -178,6 +186,8 @@ Fontes: `02-opengl/CG-OpenGL3.pdf`, `03-animacao/CG-animacao.pdf`.
 - **Câmera:** `gluLookAt(eyeX, eyeY, eyeZ, centroX, centroY, centroZ, upX, upY, upZ)`.
   A alternativa é mover a cena com `glTranslatef` e `glRotatef`.
 - Exercícios da aula: mesa com cubos e vistas diferentes, `planet.c` com mais planetas e luas, `robot.c` com mão e dedos.
+- Exemplos do Guha cap. 4 (`referencias/sumanta-guha/ExperimenterSource/Chapter4/`): `box.cpp`,
+  `composeTransformations.cpp`, `boxWithLookAt.cpp` e os `experiment*.cpp` de escala, rotação, translação e `gluLookAt`.
 
 ---
 
@@ -207,9 +217,11 @@ Ele evita o efeito de "fantasma" entre quadros.
 
 **Física vista:** lançamento oblíquo em `throwBall.cpp`, com `x(t) = h·t` e `y(t) = v·t − (g/2)·t²`.
 
-**Exemplos de animação da aula** (Guha cap. 4): `ballAndTorus.cpp`, `throwBall.cpp`, `clown1/2/3.cpp`,
-`floweringPlant.cpp` e `spaceTravel.cpp` (duas viewports, câmera na nave, detecção de colisão).
-Esses arquivos **não estão nesta pasta** (cap. 4 não foi copiado).
+**Exemplos de animação da aula** (Guha cap. 4, em `referencias/sumanta-guha/ExperimenterSource/Chapter4/`):
+`rotatingHelix1/2/3.cpp`, `ballAndTorus.cpp`, `throwBall.cpp`, `clown.cpp`, `floweringPlant.cpp`
+e `spaceTravel.cpp` (duas viewports, câmera na nave, detecção de colisão).
+Os slides citam `clown1/2/3.cpp`, mas a pasta tem só `clown.cpp`, que é o passo final.
+O capítulo traz também `animateMan1/2.cpp` (boneco com partes móveis; o `animateMan2` lê `animateManDataIn.txt`).
 Versões feitas pelo Victor estão em `../Cap4/` (`BolaRolando`, `Clown`, `FlowerPlan`, `Carro`, `TorusBall`) e em `../SpaceTravel.cpp`, `../Planet.cpp` e `../Robot.cpp`.
 
 **Lista L22:** bola rolando no plano inclinado, bola quicando entre caixas, bola em hélice,
@@ -398,10 +410,6 @@ Detalhe útil: as lâmpadas são esferas desenhadas com `GL_LIGHTING` desligado,
 
 ## 11. Lacunas do material neste repositório
 
-- **Guha cap. 4 (animação e transformações)** não foi copiado. Os slides citam `rotatingHelix1/2/3`,
-  `ballAndTorus`, `throwBall`, `clown1/2/3`, `floweringPlant` e `spaceTravel`.
-  Eles estão no site, em `SUMANTA GUHA/ExperimenterSource/Chapter4/`.
-- **Lista de Modelagem Geométrica** (`Lista Modelagem Geometrica.pdf`) também ficou só no site.
 - **Texturas BMP do Guha** não existem no servidor.
 - Temas fora da PP4 não foram copiados: introdução, transformações geométricas teóricas,
   transformações projetivas, recorte e amostragem.
