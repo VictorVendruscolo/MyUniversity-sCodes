@@ -237,3 +237,69 @@ O Sol no centro, planetas em órbita com luas, Saturno com anel e um fundo de es
 | Tipo de luz principal | spot que segue o braço | spot giratório + luar | luz pontual dentro do Sol |
 | Textura | tabuleiro procedural | listras + mar animado (procedural) | listras procedurais + BMP opcional |
 | Precisa de arquivo BMP? | não | não | só se quiser fotos dos planetas |
+
+---
+
+## Parte 3 — Ideia escolhida: escrivaninha personalizada (ideia A ajustada)
+
+Status: **aguardando autorização da professora.**
+Depois da autorização, a versão final vai para a seção "Proposta aprovada" do `CLAUDE.md`.
+
+Uma escrivaninha à noite. Uma luminária moderna ilumina a mesa de cima para baixo.
+Sobre a mesa ficam um tablet, um livro, uma caneca e um patinho de borracha.
+
+### Decisões do Victor (10/11)
+
+| Ponto | Decisão |
+|---|---|
+| Luminária | base cilíndrica baixa (1/4 da altura total) + haste fina + disco no topo que ilumina para baixo |
+| Tablet | em pé, inclinado 70° em relação à mesa |
+| Livro | "Discurso do Método" (Descartes); título escrito na capa com a fonte da GLUT |
+| Caneca | da Colômbia, com as faixas da bandeira como textura gerada no código |
+| Patinho | de borracha, amarelo |
+| Animação | o patinho balança; a imagem da tela do tablet desliza |
+| Textura | só gerada no código (sem arquivo BMP), por ser mais simples |
+
+### Item por item
+
+| Item | O que usa | De onde vem |
+|---|---|---|
+| 1. Modelos | **Luminária:** `gluCylinder` (base, haste e disco) + `gluDisk` (tampas). **Tablet:** `glutSolidCube` escalado e girado 70°, com a tela num `GL_QUADS` na frente. **Livro:** `glutSolidCube` escalado; título com `glutStrokeCharacter`. **Caneca:** `gluCylinder` + `gluDisk` (fundo) + `glutSolidTorus` (alça). **Patinho:** `glutSolidSphere` escalado (corpo e cabeça), `glutSolidCone` (bico), esferas pequenas (olhos), montado com `glPushMatrix`/`glPopMatrix`. **Mesa:** tampo em malha de faixas de triângulos; pernas com cubos escalados. `glEnable(GL_NORMALIZE)` por causa do `glScalef` | `gluQuadrics.cpp`, `glutObjects.cpp` (Guha cap. 10), seu `Cap10/Torpedo.cpp`, seu `Cap3/Fonts.cpp`, seu `LookAtDesk.cpp`, seu `Planet.cpp` (hierarquia), `checkeredFloor.cpp` (Guha cap. 11), `lightlab.c`/`teapots.c` (`GL_NORMALIZE`) |
+| 2. Animação | `glutTimerFunc`: o patinho sobe e desce (`y = A·sin(t)`) e gira devagar (`glRotatef`); a textura da tela desliza somando um deslocamento às coordenadas. Buffer duplo com `glutSwapBuffers` | `spots.c`, `rotatingHelix3.cpp`, seu `Planet.cpp`, `texturedTorus.cpp` (Exp. 12.15) |
+| 3. Z-buffer | `GLUT_DEPTH`, `glEnable(GL_DEPTH_TEST)`, `glClear(... | GL_DEPTH_BUFFER_BIT)`. Os objetos se escondem uns atrás dos outros; ao girar, as partes do patinho também | `triangles.c`, `hidplanes.c`, slides de visibilidade |
+| 4. Iluminação | `GL_LIGHT0`: spot no disco, apontando para baixo (`GL_SPOT_DIRECTION (0, −1, 0)`, `GL_SPOT_CUTOFF`, `GL_SPOT_EXPONENT`), `w = 1`. `GL_LIGHT1`: luz direcional fraca do quarto (`w = 0`). Face de baixo do disco com `GL_EMISSION`. Materiais: patinho e caneca com especular e `GL_SHININESS`; livro e mesa só difusos. Luz ambiente global baixa (`glLightModelfv`). `GL_SMOOTH` | `spots.c`, `plane.c`, `material.c`, `light.c`, L42 |
+| 5. Textura (pesquisa) | **Caneca:** faixas da bandeira (amarelo 1/2, azul 1/4, vermelho 1/4) geradas num vetor, aplicadas com `gluQuadricTexture(q, GL_TRUE)` e misturadas com a luz (`GL_MODULATE`). **Tela do tablet:** padrão gerado no código num `GL_QUADS` com `glTexCoord2f`, repetido com `GL_REPEAT` e deslocado a cada quadro; `GL_REPLACE` ignora a luz, então a tela parece acesa | `texturedTorpedo.cpp` (`createStripes`, Exp. 12.16), `fieldAndSkyLit.cpp` (Exp. 12.17), `loadTextures.cpp` (Exp. 12.1), `texturedTorus.cpp` (Exp. 12.15), Exp. 12.6 |
+
+### Pontos para definir depois (não travam a autorização)
+
+- **Título do livro.** A fonte da GLUT só tem letras sem acento. Opções: escrever "DISCURSO DO METODO" ou desenhar o acento do "é" com uma linha. Confirme também o título exato da sua edição.
+- **Imagem da tela do tablet.** Sugestão: o tabuleiro gerado no código, o mesmo que desliza no toro do Exp. 12.15. Pode ser outro padrão.
+- **Extras opcionais** (fora do e-mail): tecla para girar a câmera; tecla para desligar o z-buffer na apresentação e mostrar o erro.
+
+### Texto para pedir a autorização
+
+Assunto: PL4 - Victor Rech Vendruscolo - pedido de autorização da ideia
+
+> Bom dia, professora Mercedes.
+>
+> Sou o Victor Rech Vendruscolo (nº 12 da lista, apresentação em 19/11). Envio a ideia da minha PL4/PP4 para a sua autorização.
+>
+> **Ideia: uma escrivaninha à noite, iluminada por uma luminária moderna.**
+>
+> 1. **Cenário 3D:** uma mesa com cinco objetos.
+>    - Luminária moderna: base cilíndrica baixa, haste fina e um disco no topo (quádricas da GLU).
+>    - Tablet em pé, inclinado 70° em relação à mesa (cubo da GLUT escalado).
+>    - Livro "Discurso do Método", de Descartes, com o título escrito na capa (fonte da GLUT).
+>    - Caneca da Colômbia (cilindro e disco da GLU, alça com toro da GLUT).
+>    - Patinho de borracha amarelo (esferas e cone da GLUT).
+> 2. **Animação** (timer e buffer duplo): o patinho balança, subindo, descendo e girando devagar. A imagem da tela do tablet desliza.
+> 3. **Z-buffer:** `GLUT_DEPTH`, `glEnable(GL_DEPTH_TEST)` e limpeza do buffer de profundidade a cada quadro. Os objetos se escondem uns atrás dos outros.
+> 4. **Iluminação:** a luminária tem uma luz spot que aponta para baixo. Uma luz direcional fraca ilumina o quarto. O disco da luminária usa material emissivo. Cada objeto tem material próprio: patinho e caneca com brilho especular, livro e mesa só difusos.
+> 5. **Textura** (pesquisa no capítulo 12 do livro do Sumanta Guha): texturas geradas no próprio código, sem arquivo de imagem.
+>    - Caneca: faixas da bandeira da Colômbia, combinadas com a luz (`GL_MODULATE`).
+>    - Tela do tablet: um padrão que desliza, animado pelas coordenadas de textura. A tela ignora a luz (`GL_REPLACE`) para parecer acesa.
+>
+> Posso seguir com essa ideia? Se precisar de algum ajuste, eu adapto.
+>
+> Atenciosamente,
+> Victor Rech Vendruscolo
