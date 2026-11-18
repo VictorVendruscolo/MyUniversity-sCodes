@@ -242,8 +242,7 @@ O Sol no centro, planetas em órbita com luas, Saturno com anel e um fundo de es
 
 ## Parte 3 — Ideia escolhida: escrivaninha personalizada (ideia A ajustada)
 
-Status: **aguardando autorização da professora.**
-Depois da autorização, a versão final vai para a seção "Proposta aprovada" do `CLAUDE.md`.
+Status: **recusada pela professora.** Ela pediu uma brinquedoteca. Veja a seção "Proposta aprovada" do `CLAUDE.md`.
 
 Uma escrivaninha à noite. Uma luminária moderna ilumina a mesa de cima para baixo.
 Sobre a mesa ficam um tablet, um livro, uma caneca e um patinho de borracha.

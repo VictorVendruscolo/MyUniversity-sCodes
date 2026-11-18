@@ -101,4 +101,16 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 
 ## Proposta aprovada
 
-_(preencher depois da autorização da professora: cenário, modelos, animação, iluminação, textura e ajustes pedidos)_
+- **Histórico:** a ideia da escrivaninha (`Trabalho2_CG/PROPOSTA_IDEIAS.md`, Parte 3) foi recusada.
+  A professora pediu uma **brinquedoteca** e autorizou essa ideia sem pedir ajustes (informado pelo Victor em 17/11).
+- **Código:** `Trabalho2_CG/brinquedoteca.cpp`. **Slides:** PowerPoint (.pptx).
+- **Cenário:** sala com piso de EVA, parede do fundo, parede da esquerda com janela e luminária de teto.
+- **Brinquedos animados:** pião (gira e balança), bola de praia (rola para lá e para cá),
+  carrinho (dá voltas, base no `Cap4/Carro2.0.cpp`) e palhaço (`Cap4/Clown.cpp`, versão Solid).
+- **Brinquedos parados:** torre de argolas, blocos de montar, ursinho de pelúcia e patinho de borracha.
+- **Z-buffer:** `GLUT_DEPTH`, `GL_DEPTH_TEST`, limpeza a cada quadro; tecla `z` desliga para mostrar o erro.
+- **Iluminação:** `GL_LIGHT0` spot do teto (cutoff 35°, expoente 5); `GL_LIGHT1` direcional (luz do dia);
+  luz ambiente global; lâmpada e janela emissivas; brilho especular nos plásticos e não na pelúcia; `GL_NORMALIZE`.
+- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Piso de EVA (4 cores, adaptado de `createChessboard`)
+  e gomos da bola e do pião (adaptado de `createStripes`, com `gluQuadricTexture`). `GL_MODULATE`.
+- **Teclas:** espaço (pausa), setas (câmera), `1`/`2` (luzes), `z` (z-buffer), `t` (textura), Esc.
