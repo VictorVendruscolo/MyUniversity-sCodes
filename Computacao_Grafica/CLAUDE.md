@@ -104,19 +104,25 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 - **Histórico:** a ideia da escrivaninha (`Trabalho2_CG/PROPOSTA_IDEIAS.md`, Parte 3) foi recusada.
   A professora pediu uma **brinquedoteca** e autorizou essa ideia sem pedir ajustes (informado pelo Victor em 17/11).
 - **Código:** `Trabalho2_CG/brinquedoteca.cpp`. **Slides:** PowerPoint (.pptx).
-- **Versão 2 (18/11, em ajuste com o Victor):** sala menor (12 x 12, altura 5), vista pela quina.
-  Os slides e a pasta `imagens/` ainda mostram a versão 1 (piso de EVA, pião, palhaço); atualizar só depois do ok do Victor.
-- **Cenário:** piso de madeira, parede do fundo, parede da esquerda com janela (moldura + vidro emissivo) e luminária de teto.
-- **Casinha (transformações):** 4 paredes = a mesma malha com 4 transformações; telhado = `glutSolidCone` com 4 lados
-  (rotação + escala); chaminé; porta que gira em volta da dobradiça (tecla `p`).
-- **Carrinho:** anda num círculo (centro (0,5; 0,5), raio 3,2), com 2 faróis spot presos a ele (`GL_LIGHT2` e `GL_LIGHT3`).
+- **Versão 3 (18/11, em ajuste com o Victor):** sala 12 x 12 (altura 5), vista pela quina.
+  Os slides e a pasta `imagens/` ainda mostram a versão 1; atualizar só depois do ok do Victor.
+- **Cenário:** piso de madeira, paredes de bolinhas, janela redonda (vidro emissivo + moldura de toro) e luminária de teto.
+- **Barraca:** cilindro + cone da GLU com textura de listras; porta sempre aberta (retângulo escuro + meio disco).
+- **Carrinho de ronda:** trajeto de curvas de Bézier cúbicas (4 trechos de ida, 4 de volta), velocidade constante,
+  direção pela tangente (`atan2`). Fases: ida (passa pelo patinho, blocos e torre) → 2 s dentro da barraca →
+  volta (passa pelo ursinho e pela bola) → fim na vaga. Espaço pausa; no fim, começa outra ronda.
+- **Ursinho:** vira a cabeça enquanto o carrinho está na barraca; olhos brilham (emissão azul-clara) com a luz da sala apagada.
 - **Amarelinha:** 8 casas (malhas 4 x 4) + números com `glutStrokeCharacter` + céu com `gluPartialDisk`.
-- **Reaproveitados:** blocos de montar, torre de argolas, ursinho, patinho e bola de praia (parada, com textura de gomos).
-- **Z-buffer:** `GLUT_DEPTH`, `GL_DEPTH_TEST`, limpeza a cada quadro; tecla `z` desliga para mostrar o erro.
-- **Iluminação:** `GL_LIGHT0` luz da sala (pontual, tecla `1`); `GL_LIGHT1` luz da janela (spot fora da sala,
-  cone de 15°, tecla `2`; o vidro fica escuro quando ela desliga); `GL_LIGHT2/3` faróis (spots de 25°, atenuação linear
-  e quadrática, tecla `3`); ambiente global 0,15; emissão na lâmpada, no vidro e nos faróis; `GL_NORMALIZE`.
-  Limitação: sem sombras no pipeline fixo, a luz atravessa os objetos.
-- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Piso de madeira (adaptado de `createChessboard`)
-  e gomos da bola (adaptado de `createStripes`, com `gluQuadricTexture`). `GL_MODULATE`.
-- **Teclas:** espaço (pausa o carrinho), setas (câmera), `1`/`2`/`3` (luzes), `p` (porta), `z` (z-buffer), `t` (textura), Esc.
+- **Outros:** blocos de montar e patinho (cores fortes), torre de argolas, bola de praia.
+- **Z-buffer:** `GLUT_DEPTH`, `GL_DEPTH_TEST`, limpeza a cada quadro; tecla `z`. O z-buffer também esconde o carrinho
+  atrás da porta escura quando ele entra na barraca.
+- **Iluminação:** `GL_LIGHT0` sala (pontual, com ambiente próprio 0,25, tecla `1`); `GL_LIGHT1` janela (spot longe,
+  cone de 3,3°: raios quase paralelos, mancha do tamanho da janela, tecla `2`); `GL_LIGHT2/3` faróis (spots de 25°,
+  atenuação, tecla `3`, apagam na barraca); `GL_LIGHT4/5` sirene (spots vermelho e azul girando, tecla `4`, só na ronda);
+  ambiente global 0,15; emissão na lâmpada, vidro, faróis, sirene e olhos; `GL_NORMALIZE`.
+  Limitação: sem sombras no pipeline fixo, a luz atravessa os objetos. Feixe de luz visível ficou de fora:
+  precisaria de transparência (`GL_BLEND`), que não foi dada em aula.
+- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Madeira (adaptada de `createChessboard`),
+  listras da barraca e da bola (adaptadas de `createStripes`, com `gluQuadricTexture`) e bolinhas das paredes
+  (`GL_LINEAR`). `GL_MODULATE`.
+- **Teclas:** espaço (pausa/recomeça a ronda), setas (câmera), `1`/`2`/`3`/`4` (luzes), `z` (z-buffer), `t` (textura), Esc.
