@@ -104,13 +104,19 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 - **Histórico:** a ideia da escrivaninha (`Trabalho2_CG/PROPOSTA_IDEIAS.md`, Parte 3) foi recusada.
   A professora pediu uma **brinquedoteca** e autorizou essa ideia sem pedir ajustes (informado pelo Victor em 17/11).
 - **Código:** `Trabalho2_CG/brinquedoteca.cpp`. **Slides:** PowerPoint (.pptx).
-- **Cenário:** sala com piso de EVA, parede do fundo, parede da esquerda com janela e luminária de teto.
-- **Brinquedos animados:** pião (gira e balança), bola de praia (rola para lá e para cá),
-  carrinho (dá voltas, base no `Cap4/Carro2.0.cpp`) e palhaço (`Cap4/Clown.cpp`, versão Solid).
-- **Brinquedos parados:** torre de argolas, blocos de montar, ursinho de pelúcia e patinho de borracha.
+- **Versão 2 (18/11, em ajuste com o Victor):** sala menor (12 x 12, altura 5), vista pela quina.
+  Os slides e a pasta `imagens/` ainda mostram a versão 1 (piso de EVA, pião, palhaço); atualizar só depois do ok do Victor.
+- **Cenário:** piso de madeira, parede do fundo, parede da esquerda com janela (moldura + vidro emissivo) e luminária de teto.
+- **Casinha (transformações):** 4 paredes = a mesma malha com 4 transformações; telhado = `glutSolidCone` com 4 lados
+  (rotação + escala); chaminé; porta que gira em volta da dobradiça (tecla `p`).
+- **Carrinho:** anda num círculo (centro (0,5; 0,5), raio 3,2), com 2 faróis spot presos a ele (`GL_LIGHT2` e `GL_LIGHT3`).
+- **Amarelinha:** 8 casas (malhas 4 x 4) + números com `glutStrokeCharacter` + céu com `gluPartialDisk`.
+- **Reaproveitados:** blocos de montar, torre de argolas, ursinho, patinho e bola de praia (parada, com textura de gomos).
 - **Z-buffer:** `GLUT_DEPTH`, `GL_DEPTH_TEST`, limpeza a cada quadro; tecla `z` desliga para mostrar o erro.
-- **Iluminação:** `GL_LIGHT0` spot do teto (cutoff 35°, expoente 5); `GL_LIGHT1` direcional (luz do dia);
-  luz ambiente global; lâmpada e janela emissivas; brilho especular nos plásticos e não na pelúcia; `GL_NORMALIZE`.
-- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Piso de EVA (4 cores, adaptado de `createChessboard`)
-  e gomos da bola e do pião (adaptado de `createStripes`, com `gluQuadricTexture`). `GL_MODULATE`.
-- **Teclas:** espaço (pausa), setas (câmera), `1`/`2` (luzes), `z` (z-buffer), `t` (textura), Esc.
+- **Iluminação:** `GL_LIGHT0` luz da sala (pontual, tecla `1`); `GL_LIGHT1` luz da janela (spot fora da sala,
+  cone de 15°, tecla `2`; o vidro fica escuro quando ela desliga); `GL_LIGHT2/3` faróis (spots de 25°, atenuação linear
+  e quadrática, tecla `3`); ambiente global 0,15; emissão na lâmpada, no vidro e nos faróis; `GL_NORMALIZE`.
+  Limitação: sem sombras no pipeline fixo, a luz atravessa os objetos.
+- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Piso de madeira (adaptado de `createChessboard`)
+  e gomos da bola (adaptado de `createStripes`, com `gluQuadricTexture`). `GL_MODULATE`.
+- **Teclas:** espaço (pausa o carrinho), setas (câmera), `1`/`2`/`3` (luzes), `p` (porta), `z` (z-buffer), `t` (textura), Esc.
