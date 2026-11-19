@@ -101,4 +101,31 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 
 ## Proposta aprovada
 
-_(preencher depois da autorização da professora: cenário, modelos, animação, iluminação, textura e ajustes pedidos)_
+- **Histórico:** a ideia da escrivaninha (`Trabalho2_CG/PROPOSTA_IDEIAS.md`, Parte 3) foi recusada.
+  A professora pediu uma **brinquedoteca** e autorizou essa ideia sem pedir ajustes (informado pelo Victor em 17/11).
+- **Código:** `Trabalho2_CG/brinquedoteca.cpp`. **Slides:** PowerPoint (.pptx).
+- **Versão 3 (18/11):** sala 12 x 12 (altura 5), vista pela quina. O Victor decidiu manter tudo (19/11).
+- **Slides da versão 3:** `Trabalho2_CG/PL4_PP4_Victor_Rech_Vendruscolo_v3.pptx` (+ `.pdf`), gerados com as imagens
+  novas de `Trabalho2_CG/imagens/`. O `.pptx` e o `.pdf` sem `_v3` são da versão 1 e ficam até o Victor confirmar a troca.
+- **Etapa 3 feita para a versão 3:** `Trabalho2_CG/EXPLICACAO.md` (rotina por rotina + rastreabilidade) e
+  `Trabalho2_CG/GUIA_DE_ESTUDO.md` (plano de 2 h, padrões, 6 blocos novos, teoria L22/L41/L42, 38 perguntas).
+- **Cenário:** piso de madeira, paredes de bolinhas, janela redonda (vidro emissivo + moldura de toro) e luminária de teto.
+- **Barraca:** cilindro + cone da GLU com textura de listras; porta sempre aberta (retângulo escuro + meio disco).
+- **Carrinho de ronda:** trajeto de curvas de Bézier cúbicas (4 trechos de ida, 4 de volta), velocidade constante,
+  direção pela tangente (`atan2`). Fases: ida (passa pelo patinho, blocos e torre) → 2 s dentro da barraca →
+  volta (passa pelo ursinho e pela bola) → fim na vaga. Espaço pausa; no fim, começa outra ronda.
+- **Ursinho:** vira a cabeça enquanto o carrinho está na barraca; olhos brilham (emissão azul-clara) com a luz da sala apagada.
+- **Amarelinha:** 8 casas (malhas 4 x 4) + números com `glutStrokeCharacter` + céu com `gluPartialDisk`.
+- **Outros:** blocos de montar e patinho (cores fortes), torre de argolas, bola de praia.
+- **Z-buffer:** `GLUT_DEPTH`, `GL_DEPTH_TEST`, limpeza a cada quadro; tecla `z`. O z-buffer também esconde o carrinho
+  atrás da porta escura quando ele entra na barraca.
+- **Iluminação:** `GL_LIGHT0` sala (pontual, com ambiente próprio 0,25, tecla `1`); `GL_LIGHT1` janela (spot longe,
+  cone de 3,3°: raios quase paralelos, mancha do tamanho da janela, tecla `2`); `GL_LIGHT2/3` faróis (spots de 25°,
+  atenuação, tecla `3`, apagam na barraca); `GL_LIGHT4/5` sirene (spots vermelho e azul girando, tecla `4`, só na ronda);
+  ambiente global 0,15; emissão na lâmpada, vidro, faróis, sirene e olhos; `GL_NORMALIZE`.
+  Limitação: sem sombras no pipeline fixo, a luz atravessa os objetos. Feixe de luz visível ficou de fora:
+  precisaria de transparência (`GL_BLEND`), que não foi dada em aula.
+- **Textura (pesquisa, Guha cap. 12):** gerada no código, sem BMP. Madeira (adaptada de `createChessboard`),
+  listras da barraca e da bola (adaptadas de `createStripes`, com `gluQuadricTexture`) e bolinhas das paredes
+  (`GL_LINEAR`). `GL_MODULATE`.
+- **Teclas:** espaço (pausa/recomeça a ronda), setas (câmera), `1`/`2`/`3`/`4` (luzes), `z` (z-buffer), `t` (textura), Esc.
