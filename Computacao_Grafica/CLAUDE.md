@@ -104,8 +104,11 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 - **Histórico:** a ideia da escrivaninha (`Trabalho2_CG/PROPOSTA_IDEIAS.md`, Parte 3) foi recusada.
   A professora pediu uma **brinquedoteca** e autorizou essa ideia sem pedir ajustes (informado pelo Victor em 17/11).
 - **Código:** `Trabalho2_CG/brinquedoteca.cpp`. **Slides:** PowerPoint (.pptx).
-- **Versão 3 (18/11, em ajuste com o Victor):** sala 12 x 12 (altura 5), vista pela quina.
-  Os slides e a pasta `imagens/` ainda mostram a versão 1; atualizar só depois do ok do Victor.
+- **Versão 3 (18/11):** sala 12 x 12 (altura 5), vista pela quina. O Victor decidiu manter tudo (19/11).
+- **Slides da versão 3:** `Trabalho2_CG/PL4_PP4_Victor_Rech_Vendruscolo_v3.pptx` (+ `.pdf`), gerados com as imagens
+  novas de `Trabalho2_CG/imagens/`. O `.pptx` e o `.pdf` sem `_v3` são da versão 1 e ficam até o Victor confirmar a troca.
+- **Etapa 3 feita para a versão 3:** `Trabalho2_CG/EXPLICACAO.md` (rotina por rotina + rastreabilidade) e
+  `Trabalho2_CG/GUIA_DE_ESTUDO.md` (plano de 2 h, padrões, 6 blocos novos, teoria L22/L41/L42, 38 perguntas).
 - **Cenário:** piso de madeira, paredes de bolinhas, janela redonda (vidro emissivo + moldura de toro) e luminária de teto.
 - **Barraca:** cilindro + cone da GLU com textura de listras; porta sempre aberta (retângulo escuro + meio disco).
 - **Carrinho de ronda:** trajeto de curvas de Bézier cúbicas (4 trechos de ida, 4 de volta), velocidade constante,
