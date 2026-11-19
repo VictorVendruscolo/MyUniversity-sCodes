@@ -24,6 +24,20 @@
 // Setas esquerda/direita: giram a câmera. Setas cima/baixo: sobem ou descem a câmera.
 // 1: luz da sala.  2: luz da janela.  3: faróis.  4: sirene.
 // z: z-buffer.  t: texturas.  Esc: sai.
+//
+// MAPA DO CÓDIGO (na ordem do arquivo; [n] = item da PP4)
+//   Variáveis globais ............... estado da ronda, câmera, teclas e texturas
+//   [5] Texturas .................... criarMadeira, criarListras, criarBolinhas, enviarTextura
+//   Ajudantes ....................... brilho, caixa, desenharMalha
+//   [1] Sala ........................ desenharPiso, desenharParedes, desenharJanela, desenharLuminaria
+//   [1] Barraca e amarelinha ........ desenharBarraca, casaAmarelinha, desenharAmarelinha
+//   [2] Ronda do carrinho ........... bezier, pontoDoTrajeto, atualizarRonda
+//   [4] Luzes do carrinho ........... posicionarCarrinho, posicionarLuzesDoCarrinho
+//   [1] Carrinho e brinquedos ....... desenharRoda, desenharCarrinho, desenharBola ... desenharPatinho
+//   Rotinas da GLUT ................. drawScene [3][4], setup [3][4][5], resize, keyInput,
+//                                     animate [2], main
+//
+// Marcas nos comentários: DECISÃO = por que foi feito assim.  FONTE = de onde veio.
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include <cmath>
@@ -104,12 +118,14 @@ static unsigned char listras[64][64][3];
 static unsigned char bolinhas[64][64][3];
 
 // ---------------------------------------------------------------------------------
-// Texturas (pesquisa própria: Guha cap. 12, Experimenter p. 87-94)
+// [ITEM 5] Texturas: pesquisa própria (Guha cap. 12, Experimenter p. 87-94)
 // ---------------------------------------------------------------------------------
+// DECISÃO: as imagens são geradas no código, sem arquivo BMP: o programa não depende
+//          de arquivos e roda a partir de qualquer pasta.
 
 // Piso de madeira: 4 tábuas de 16 pixels, cada uma num tom de marrom,
 // com uma linha escura entre as tábuas e uma emenda em lugar diferente em cada tábua.
-// Adaptado de createChessboard() (loadTextures.cpp, Exp. 12.1).
+// FONTE (pesquisa): adaptado de createChessboard() (loadTextures.cpp, Exp. 12.1).
 void criarMadeira(void)
 {
    int i, j, tabua, junta;
@@ -134,7 +150,7 @@ void criarMadeira(void)
 }
 
 // Listras: 8 faixas de 8 pixels, uma ao lado da outra, em 4 cores.
-// Adaptado de createStripes() (texturedTorpedo.cpp, Exp. 12.16), que usa 2 cores.
+// FONTE (pesquisa): adaptado de createStripes() (texturedTorpedo.cpp, Exp. 12.16), que usa 2 cores.
 // A faixa muda com a coluna j, que é a coordenada s da textura. Nas quádricas da GLU,
 // s dá a volta em torno do eixo: na barraca as faixas ficam em pé e na bola viram gomos.
 void criarListras(void)
@@ -236,8 +252,9 @@ void caixa(float x, float y, float z, float sx, float sy, float sz)
 }
 
 // Malha de n x n quadradinhos no plano xy, de (0, 0) até (largura, altura), com normal +z.
-// A luz é calculada nos vértices. Com muitos vértices, os cones de luz aparecem nas superfícies.
-// Mesmo padrão de faixas de triângulos do hemisphere.cpp e do piso de checkeredFloor.cpp.
+// DECISÃO: a luz é calculada nos vértices. Com só 4 vértices, os cones de luz (spots) não
+//          apareceriam. Por isso piso, paredes e casas da amarelinha são malhas finas.
+// FONTE: faixas de triângulos do hemisphere.cpp (cap. 3) e do piso do checkeredFloor.cpp (cap. 11).
 // repS e repT = quantas vezes a textura se repete na largura e na altura.
 void desenharMalha(float largura, float altura, int n, float repS, float repT)
 {
@@ -258,7 +275,7 @@ void desenharMalha(float largura, float altura, int n, float repS, float repT)
 }
 
 // ---------------------------------------------------------------------------------
-// Sala
+// [ITEM 1] Sala
 // ---------------------------------------------------------------------------------
 
 // Piso 12 x 12 (x e z de -6 a 6), com a madeira repetida 4 vezes.
@@ -276,8 +293,8 @@ void desenharPiso(void)
 }
 
 // Parede do fundo (z = -6) e parede da esquerda (x = -6), com 5 de altura e bolinhas.
-// A textura se repete 6 vezes na largura (12) e 2,5 vezes na altura (5): uma bolinha redonda
-// a cada 1 unidade.
+// DECISÃO: a textura se repete 6 vezes na largura (12) e 2,5 na altura (5), na mesma proporção
+//          da parede: assim as bolinhas ficam redondas (uma a cada 1 unidade).
 void desenharParedes(void)
 {
    ligarTextura(2);
@@ -301,7 +318,8 @@ void desenharParedes(void)
 }
 
 // Janela redonda na parede da esquerda: vidro emissivo (céu claro de dia, escuro de noite)
-// e moldura branca (um toro). Redonda como o cone de luz que entra por ela.
+// e moldura branca (um toro).
+// DECISÃO: a janela é redonda porque o cone de luz do sol (um spot) é redondo.
 void desenharJanela(void)
 {
    float ceuDia[] = { 0.55, 0.8, 1.0, 1.0 };
@@ -312,7 +330,7 @@ void desenharJanela(void)
    glTranslatef(-5.97, 2.9, 3.0);   // Centro da janela, um pouco à frente da parede.
    glRotatef(90.0, 0.0, 1.0, 0.0);  // O disco e o toro nascem virados para +z; assim olham para +x.
 
-   // Vidro: cor preta + emissão, então ele mostra só a cor que emite (material.c).
+   // DECISÃO: vidro com cor preta + emissão: aparece só a cor que ele emite (FONTE: material.c).
    glColor3f(0.0, 0.0, 0.0);
    if (luzJanela) glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, ceuDia);
    else glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, ceuNoite);
@@ -359,7 +377,7 @@ void desenharLuminaria(void)
 }
 
 // ---------------------------------------------------------------------------------
-// Barraca
+// [ITEM 1] Barraca
 // ---------------------------------------------------------------------------------
 
 // Barraca redonda: parede = cilindro da GLU; teto = cone (cilindro com raio de cima 0).
@@ -390,7 +408,8 @@ void desenharBarraca(void)
 
    // Porta sempre aberta: retângulo escuro com meio disco em cima (topo arredondado).
    // Fica virada para +x (de onde o carrinho chega), um pouco à frente da parede.
-   // Quando o carrinho entra, o z-buffer esconde atrás da porta escura a parte que já entrou.
+   // DECISÃO: a porta é desenhada (não é um buraco). Quando o carrinho entra, o z-buffer esconde
+   //          atrás da porta escura a parte que já entrou. FONTE: gluPartialDisk do torpedo.cpp.
    glColor3f(0.06, 0.05, 0.05);
    glPushMatrix();
    glRotatef(90.0, 0.0, 1.0, 0.0);  // O +z local passa a ser +x: a frente da porta.
@@ -410,7 +429,7 @@ void desenharBarraca(void)
 }
 
 // ---------------------------------------------------------------------------------
-// Amarelinha
+// [ITEM 1] Amarelinha
 // ---------------------------------------------------------------------------------
 
 // Uma casa da amarelinha: quadrado deitado no chão, com borda branca e número.
@@ -418,7 +437,7 @@ void desenharBarraca(void)
 void casaAmarelinha(float x, float z, float r, float g, float b, char numero)
 {
    glPushMatrix();
-   glTranslatef(x, 0.01, z);          // Um pouco acima do piso (z-buffer).
+   glTranslatef(x, 0.01, z);          // DECISÃO: 0,01 acima do piso (evita z-fighting).
    glRotatef(-90.0, 1.0, 0.0, 0.0);   // Deita a malha: o "para cima" dela vira "para a frente".
    glTranslatef(-LADO / 2, -LADO / 2, 0.0); // Centraliza o quadrado.
 
@@ -476,12 +495,12 @@ void desenharAmarelinha(void)
 }
 
 // ---------------------------------------------------------------------------------
-// Carrinho de ronda: trajeto de Bézier, faróis e sirene
+// [ITENS 2 e 4] Carrinho de ronda: trajeto de Bézier (animação), faróis e sirene (luzes)
 // ---------------------------------------------------------------------------------
 
 // Ponto (x, z) e tangente (dx, dz) de uma curva de Bézier cúbica no parâmetro t (0 a 1).
-// Pesos de Bernstein (aula de modelagem, superficies.cpp): eles somam 1.
-// A tangente é a derivada da curva (bezierCurveTangent.cpp, Guha cap. 10).
+// FONTE: pesos de Bernstein da aula de modelagem (superficies.cpp); eles somam 1.
+// FONTE: a tangente é a derivada da curva (bezierCurveTangent.cpp, Guha cap. 10).
 void bezier(float c[8], float t, float *x, float *z, float *dx, float *dz)
 {
    float s = 1.0 - t;
@@ -514,7 +533,8 @@ void atualizarRonda(void)
    }
    else if (fase == 0 || fase == 2)  // Andando no trajeto.
    {
-      // Velocidade constante: o tamanho da tangente diz quanto a curva anda por unidade de u.
+      // DECISÃO: velocidade constante. O tamanho da tangente diz quanto a curva anda quando u
+      //          anda 1; dividindo 0,05 por ele, o carrinho anda 0,05 por quadro em qualquer trecho.
       pontoDoTrajeto(u, &x, &z, &dx, &dz);
       u += 0.05 / sqrt(dx * dx + dz * dz);  // Avança 0,05 de distância por quadro.
       if (u > 4.0) u = 4.0;
@@ -523,6 +543,8 @@ void atualizarRonda(void)
       distAndada += sqrt((x - carroX) * (x - carroX) + (z - carroZ) * (z - carroZ));
       carroX = x;
       carroZ = z;
+      // DECISÃO: atan2 dá o ângulo da tangente; usa -dz porque girar +x em volta de y dá
+      //          (cos, 0, -sen). FONTE: trigonometria do Guha cap. 4 (já usada na PP2).
       carroAng = atan2(-dz, dx) * 180.0 / PI; // A frente aponta para a tangente da curva.
 
       if (u == 4.0)                  // Fim do trajeto.
@@ -541,8 +563,9 @@ void posicionarCarrinho(void)
 }
 
 // Luzes presas ao carrinho: 2 faróis e a sirene (2 spots que giram, um vermelho e um azul).
-// A posição e a direção passam pela matriz modelview do momento: por isso as luzes andam
-// junto com o carrinho (como a lanterna na mão do robô, lista L42).
+// DECISÃO: glLightfv usa a matriz modelview do momento. Chamando depois de posicionarCarrinho,
+//          as luzes andam e viram junto com o carrinho.
+// FONTE: movelight.c e a lanterna na mão do robô (lista L42); a sirene gira como as luzes do spots.c.
 void posicionarLuzesDoCarrinho(void)
 {
    float farolEsq[] = { 0.82, 0.5, 0.25, 1.0 };  // w = 1: luz posicional.
@@ -648,7 +671,7 @@ void desenharCarrinho(void)
 }
 
 // ---------------------------------------------------------------------------------
-// Outros brinquedos
+// [ITEM 1] Outros brinquedos (mesmo padrão: pilha + transformações + objeto pronto)
 // ---------------------------------------------------------------------------------
 
 // Bola de praia parada no canto da frente, com a textura de listras (vira gomos na esfera).
@@ -781,7 +804,8 @@ void desenharUrsinho(void)
       glPopMatrix();
    }
 
-   // Cabeça e o que vai nela. Ela gira em volta do eixo y (o "pescoço").
+   // Cabeça e o que vai nela.
+   // DECISÃO: a cabeça tem rotação própria dentro da hierarquia do corpo: gira sem girar o corpo.
    glPushMatrix();
    glTranslatef(0.0, 2.3, 0.0);
    glRotatef(anguloCabeca, 0.0, 1.0, 0.0);
@@ -874,8 +898,8 @@ void desenharPatinho(void)
 // Desenho da cena.
 void drawScene(void)
 {
-   // Posições das luzes fixas. Elas passam pela matriz modelview do momento (movelight.c),
-   // por isso são enviadas depois do gluLookAt: assim ficam presas à sala.
+   // DECISÃO: as posições das luzes passam pela matriz modelview do momento (FONTE: movelight.c).
+   //          Enviadas depois do gluLookAt, elas ficam presas à sala, e não à câmera.
    float posSala[] = { 0.0, 4.3, 0.0, 1.0 };       // w = 1: luz pontual no teto.
    float posJanela[] = { -13.64, 11.02, 13.03, 1.0 }; // Longe, fora da sala: os raios chegam quase paralelos.
    float dirJanela[] = { 1.6, -1.7, -2.1 };           // Passa pelo centro do vidro e pelo rosto do ursinho.
@@ -900,7 +924,7 @@ void drawScene(void)
    glLightfv(GL_LIGHT0, GL_POSITION, posSala);
    glLightfv(GL_LIGHT1, GL_POSITION, posJanela);
    glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, dirJanela);
-   posicionarLuzesDoCarrinho(); // Antes de desenhar, para iluminar a cena já neste quadro.
+   posicionarLuzesDoCarrinho(); // DECISÃO: antes dos desenhos; depois, a cena usaria o quadro anterior.
 
    // Sala, amarelinha e barraca (sem brilho).
    brilho(0);
@@ -927,13 +951,15 @@ void drawScene(void)
 void setup(void)
 {
    float semCor[] = { 0.0, 0.0, 0.0, 1.0 };
-   // Luz 0: luz da sala. A parte ambiente dela clareia tudo enquanto ela está ligada.
+   // Luz 0: luz da sala.
+   // DECISÃO: ela tem parte ambiente própria (0,25): clareia tudo só enquanto está ligada.
    float ambSala[] = { 0.25, 0.25, 0.25, 1.0 };
    float corSala[] = { 0.85, 0.82, 0.75, 1.0 };
    float brilhoSala[] = { 0.6, 0.6, 0.6, 1.0 };
    // Luz 1: luz natural da janela (sol da tarde, forte e amarelado).
    float corSol[] = { 1.3, 1.15, 0.85, 1.0 };
-   // Luzes 2 e 3: faróis. Acima de 1 para o piso, iluminado quase de lado, aparecer.
+   // Luzes 2 e 3: faróis.
+   // DECISÃO: cor acima de 1, porque o piso recebe a luz quase de lado (cos θ pequeno) e ficaria escuro.
    float corFarol[] = { 1.6, 1.6, 1.3, 1.0 };
    // Luzes 4 e 5: sirene vermelha e azul.
    float corVermelha[] = { 1.0, 0.1, 0.1, 1.0 };
@@ -953,9 +979,9 @@ void setup(void)
    glLightfv(GL_LIGHT0, GL_SPECULAR, brilhoSala);
    glEnable(GL_LIGHT0);
 
-   // Luz da janela: spot a 15 unidades da janela. O cone de 3,3 graus tem, na janela,
-   // o raio do vidro (0,85): a luz passa justa pela janela redonda e desenha no piso
-   // uma mancha redonda (esticada pela inclinação), como o sol de verdade.
+   // DECISÃO: luz da janela = spot a 15 unidades do vidro, com cone de 3,3 graus:
+   //          tan(3,3°) x 15 ≈ 0,85 = raio do vidro. Os raios chegam quase paralelos (como o sol)
+   //          e a mancha no piso tem o formato da janela (esticada pela inclinação).
    glLightfv(GL_LIGHT1, GL_AMBIENT, semCor);
    glLightfv(GL_LIGHT1, GL_DIFFUSE, corSol);
    glLightfv(GL_LIGHT1, GL_SPECULAR, corSol);
@@ -1083,6 +1109,8 @@ void specialKeyInput(int key, int x, int y)
 }
 
 // Animação: muda as variáveis um pouco a cada quadro e se agenda de novo.
+// DECISÃO: timer (período fixo de 20 ms) e não idle, que dependeria da velocidade do computador.
+// FONTE: rotatingHelix3.cpp e spots.c.
 void animate(int value)
 {
    if (isAnimate)
