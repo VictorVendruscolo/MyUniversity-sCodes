@@ -107,7 +107,7 @@ A textura aparece marcada como **pesquisa própria**, com a fonte (Guha cap. 12,
 - **Versão 3 (18/11):** sala 12 x 12 (altura 5), vista pela quina. O Victor decidiu manter tudo (19/11).
 - **Slides finais (19/11):** `Trabalho2_CG/PL4_PP4_Victor_Rech_Vendruscolo.pptx` (+ `.pdf`), 21 slides **só de código**:
   cada slide mostra o trecho real do `.cpp` com o número das linhas, destaques, DECISÃO e FONTE. Os slides da versão 1
-  foram apagados (pedido do Victor). Os `_v3` (slides por cena, com imagens) ficaram como histórico.
+  e os `_v3` (slides por cena, com imagens) foram apagados a pedido do Victor.
 - **Apresentação:** 5 min com o programa rodando (teclas) + 15 min de código. Roteiro: `Trabalho2_CG/ROTEIRO_APRESENTACAO.md`.
 - **Comentários do código (19/11):** mapa do código no cabeçalho, seções marcadas com `[ITEM n]` e as marcas
   `DECISÃO` (por que foi feito assim) e `FONTE` (de onde veio). Só comentários mudaram; o comportamento é o mesmo.
