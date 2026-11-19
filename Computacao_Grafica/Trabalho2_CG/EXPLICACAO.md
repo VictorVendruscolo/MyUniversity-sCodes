@@ -2,7 +2,9 @@
 
 **Aluno:** Victor Rech Vendruscolo (nº 12 da lista).
 **Programa:** `brinquedoteca.cpp` (versão 3), em C++ com OpenGL de pipeline fixo, GLU e GLUT (freeglut).
-**Slides:** `PL4_PP4_Victor_Rech_Vendruscolo_v3.pptx` (e o `.pdf` com o mesmo nome).
+**Slides:** `PL4_PP4_Victor_Rech_Vendruscolo.pptx` (e o `.pdf`): só código, com o número real das linhas.
+**Roteiro da apresentação:** `ROTEIRO_APRESENTACAO.md` (5 min de demonstração + 15 min de código).
+**Comentários do código:** mapa no cabeçalho, seções marcadas com `[ITEM n]` e as marcas `DECISÃO` (por que) e `FONTE` (de onde veio).
 
 Este documento explica **o que foi feito** e **como o programa funciona**, rotina por rotina.
 No fim, a tabela de rastreabilidade mostra de onde veio cada recurso.
@@ -40,9 +42,7 @@ A professora pediu uma **brinquedoteca** e autorizou a ideia sem ajustes.
 | t | liga ou desliga as texturas |
 | Esc | sai |
 
-Roteiro de demonstração sugerido: deixar a ronda andar uma vez com tudo ligado; apertar `1` para
-mostrar o sol da janela; apertar `2` para ficar de noite (faróis, sirene e olhos do ursinho);
-apertar `z` e `t` para mostrar o erro sem z-buffer e a cena sem textura.
+Roteiro da demonstração, com tempo e o que falar em cada tecla: `ROTEIRO_APRESENTACAO.md`, Parte 1.
 
 ---
 

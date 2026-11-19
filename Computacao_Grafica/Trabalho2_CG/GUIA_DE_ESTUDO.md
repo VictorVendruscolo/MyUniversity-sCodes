@@ -16,12 +16,13 @@
 | 0:45 – 1:05 | Janela, porta da barraca, ursinho e amarelinha | Parte 2.3 a 2.6 |
 | 1:05 – 1:30 | Teoria: iluminação, z-buffer, textura e animação | Parte 3 |
 | 1:30 – 1:50 | Perguntas prováveis: responda em voz alta antes de ler a resposta | Parte 4 |
-| 1:50 – 2:00 | Rodar o programa e ensaiar a demonstração | Parte 6 |
+| 1:50 – 2:00 | Rodar o programa e ensaiar a demonstração | `ROTEIRO_APRESENTACAO.md` |
 
 **O que a prova cobra:**
 
-- **PL4 (2 pts):** slides 1 a 13, cerca de 10 minutos. Apresentação (1 pt) e domínio do assunto (1 pt).
-- **PP4 (4 pts):** slides 14 a 21, cerca de 10 minutos, com as rotinas principais. Domínio do código (2 pts) e avaliação do código (2 pts).
+- **PL4 (2 pts) + PP4 (4 pts):** 20 minutos no total. Plano do Victor: 5 min com o programa rodando (teclas)
+  e 15 min com os 21 slides de código. PL4: apresentação (1 pt) e domínio do assunto (1 pt).
+  PP4: domínio do código (2 pts) e avaliação do código (2 pts).
 - **PO4 (4 pts):** perguntas da professora sobre o código e a teoria (listas L22, L41 e L42).
 
 ---
@@ -305,18 +306,9 @@ textura em cada vértice. Serve para o piso, as paredes e as casas da amarelinha
 
 ## Parte 6 — Roteiro da apresentação e da demonstração
 
-**PL4 (10 min, slides 1 a 13):** capa → cena → 5 itens → modelos (aramado) → brinquedos → hierarquia →
-ronda (fases) → Bézier → z-buffer → 6 luzes → modelo e materiais → textura (passos) → três imagens.
-Cada slide tem notas de fala no PowerPoint.
+O roteiro completo está em `ROTEIRO_APRESENTACAO.md`:
 
-**PP4 (10 min, slides 14 a 21):** estrutura → `drawScene` → `atualizarRonda` → luzes do carrinho →
-texturas no código → teclas → origem dos recursos. Tenha o código aberto no VS Code para mostrar as rotinas.
-
-**Demonstração (rodar antes de apresentar):**
-
-1. Compile e rode (`g++ -g brinquedoteca.cpp -o output/brinquedoteca -lGL -lGLU -lglut`).
-2. Deixe a ronda inteira acontecer com tudo ligado.
-3. Espaço para outra ronda. Tecla `1`: a sala apaga e aparece o sol da janela.
-4. Tecla `2`: noite. Mostre os faróis, a sirene e os olhos do ursinho; espere o carrinho entrar na barraca (a cabeça vira).
-5. Tecla `z` (e de novo `z`): o erro sem z-buffer. Tecla `t`: a cena sem textura.
-6. Setas: mostre a cena de outro ângulo.
+- **Parte 1 (5 min):** a ordem das teclas, o que aparece na tela e o que falar
+  (para que serve, como fiz e de onde veio).
+- **Parte 2 (15 min):** a fala de cada slide de código, com o tempo e as linhas em destaque.
+  As notas do PowerPoint têm o mesmo texto.
